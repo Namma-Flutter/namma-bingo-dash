@@ -352,15 +352,18 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                   Icon(
                     Icons.security,
                     color: const Color(0xFF00FF88),
-                    size: 16,
+                    size: 14,
                   ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Secured & Verified',
-                    style: TextStyle(
-                      color: Color(0xFF00FF88),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Secured & Verified',
+                      style: TextStyle(
+                        color: Color(0xFF00FF88),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -546,6 +549,7 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
               children: [
                 Expanded(
                   child: Container(
+                    height: 56,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF00AA66), Color(0xFF00FF88)],
@@ -565,19 +569,23 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                         borderRadius: BorderRadius.circular(15),
                         onTap: () => context.go('/profile'),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.edit, color: Color(0xFF0D1F1C)),
-                              SizedBox(width: 8),
-                              Text(
-                                'EDIT PROFILE',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0D1F1C),
-                                  letterSpacing: 1.2,
+                              Icon(Icons.edit, color: Color(0xFF0D1F1C), size: 16),
+                              SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'EDIT PROFILE',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D1F1C),
+                                    letterSpacing: 0.8,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -590,6 +598,7 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Container(
+                    height: 56,
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A3A35),
                       borderRadius: BorderRadius.circular(15),
@@ -611,9 +620,10 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                         borderRadius: BorderRadius.circular(15),
                         onTap: _isDownloading ? null : _downloadQRCode,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               if (_isDownloading)
                                 const SizedBox(
@@ -625,15 +635,18 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                                   ),
                                 )
                               else
-                                const Icon(Icons.download, color: Color(0xFF00FF88)),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isDownloading ? 'SAVING...' : 'SAVE QR',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00FF88),
-                                  letterSpacing: 1.2,
+                                const Icon(Icons.download, color: Color(0xFF00FF88), size: 16),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  _isDownloading ? 'SAVING...' : 'SAVE QR',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF00FF88),
+                                    letterSpacing: 0.8,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
