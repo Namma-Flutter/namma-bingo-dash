@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "852813891064",
+    "project_id": "namma-bingo-d007c",
+    "storage_bucket": "namma-bingo-d007c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852813891064:android:bd095baf07758a29f8820d",
+        "android_client_info": {
+          "package_name": "com.example.namma_bingo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRN1VQuEewWJ12tnPdV8zx6QXH-Vbcchw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

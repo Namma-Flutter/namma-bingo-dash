@@ -1,0 +1,55 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "namma-bingo-d007c",
+          "appId": "1:852813891064:android:bd095baf07758a29f8820d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "namma-bingo-d007c",
+          "appId": "1:852813891064:ios:1d54974a6bc5ecb7f8820d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "namma-bingo-d007c",
+          "appId": "1:852813891064:ios:1d54974a6bc5ecb7f8820d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "namma-bingo-d007c",
+          "configurations": {
+            "android": "1:852813891064:android:bd095baf07758a29f8820d",
+            "ios": "1:852813891064:ios:1d54974a6bc5ecb7f8820d",
+            "macos": "1:852813891064:ios:1d54974a6bc5ecb7f8820d",
+            "web": "1:852813891064:web:c5ed136494957f81f8820d",
+            "windows": "1:852813891064:web:13895fca88c8c7cef8820d"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
