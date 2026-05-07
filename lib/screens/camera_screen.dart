@@ -5,7 +5,6 @@ import 'package:vibration/vibration.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/app_providers.dart';
 import '../const/app_colors.dart';
-import '../const/questions.dart';
 import '../const/app_config.dart';
 import 'dart:convert';
 import '../utils/typography_utils.dart';
@@ -508,11 +507,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       
       // Get the question for this box
       String questionAnswered = '';
+      final notifier = ref.read(bingoBoxesProvider.notifier);
       if (_questionText != null) {
         // Use the specific question from the Scan to Connect button
         questionAnswered = _questionText!;
-      } else if (availableBoxId > 0 && availableBoxId <= Questions.flutterEventQuestions.length) {
-        questionAnswered = Questions.flutterEventQuestions[availableBoxId - 1];
+      } else {
+        questionAnswered = notifier.getQuestionForBox(availableBoxId);
       }
       
       ref.read(bingoBoxesProvider.notifier).selectBox(
@@ -611,14 +611,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   Widget build(BuildContext context) {
     final scanStatus = ref.watch(scanStatusProvider);
     
-    // Get the question for the specific box being scanned
+    final notifier = ref.watch(bingoBoxesProvider.notifier);
     String currentQuestion = 'Tap a specific box to see its question';
     
     if (_questionText != null) {
       // Use the specific question from Scan to Connect button
       currentQuestion = _questionText!;
-    } else if (_boxId != null && _boxId! > 0 && _boxId! <= Questions.flutterEventQuestions.length) {
-      currentQuestion = Questions.flutterEventQuestions[_boxId! - 1];
+    } else if (_boxId != null) {
+      currentQuestion = notifier.getQuestionForBox(_boxId!);
     }
 
     return Scaffold(

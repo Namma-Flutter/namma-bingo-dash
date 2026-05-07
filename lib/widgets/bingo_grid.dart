@@ -36,13 +36,8 @@ class BingoGrid extends StatelessWidget {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: AppConfig.questionsCount,
+      itemCount: boxes.length,
       itemBuilder: (context, index) {
-        // Additional safety check for index bounds
-        if (index >= boxes.length) {
-          return const SizedBox.shrink();
-        }
-        
         final box = boxes[index];
         final isScannedByCurrentUser = currentUser?.scannedBoxes.contains(box.id) ?? false;
         

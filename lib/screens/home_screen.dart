@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
 import '../providers/app_providers.dart';
 import '../widgets/bingo_grid.dart';
-import '../const/questions.dart';
 import '../const/app_colors.dart';
 import '../utils/typography_utils.dart';
 
@@ -286,15 +285,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final currentUser = ref.read(currentUserProvider);
     final completedBoxes = bingoBoxes.where((box) => box.isSelected).length;
 
+    final totalQuestions = ref.read(bingoBoxesProvider.notifier).questionsCount;
     // Check if all questions are completed
-    if (completedBoxes >= 25) {
+    if (completedBoxes >= totalQuestions) {
       _showCompletionDialog();
       return;
     }
 
     // Get unfilled questions by checking which box IDs are not scanned
     final unfilledQuestions = <Map<String, dynamic>>[];
-    for (int i = 0; i < Questions.flutterEventQuestions.length; i++) {
+    final notifier = ref.read(bingoBoxesProvider.notifier);
+    for (int i = 0; i < totalQuestions; i++) {
       final boxId = i + 1; // Box IDs start from 1
       final isBoxFilled = currentUser?.scannedBoxes.contains(boxId) ?? false;
 
@@ -302,7 +303,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         unfilledQuestions.add({
           'index': i,
           'boxId': boxId,
-          'question': Questions.flutterEventQuestions[i],
+          'question': notifier.getQuestionForBox(boxId),
         });
       }
     }
@@ -459,7 +460,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'Question ${questionIndex + 1}/25',
+                        'Question ${questionIndex + 1}/${ref.read(bingoBoxesProvider.notifier).questionsCount}',
                         style: const TextStyle(
                           color: AppColors.background,
                           fontWeight: FontWeight.bold,
@@ -604,9 +605,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'You have completed all 25 networking questions!',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                Text(
+                  'You have completed all ${ref.read(bingoBoxesProvider.notifier).questionsCount} networking questions!',
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -634,11 +635,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final questionsAsync = ref.watch(questionsProvider);
+    
+    // Update questions when they are loaded
+    questionsAsync.whenData((questions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(bingoBoxesProvider.notifier).updateQuestions(questions);
+      });
+    });
+
     final currentUser = ref.watch(currentUserProvider);
     final bingoBoxes = ref.watch(bingoBoxesProvider);
-    final totalBoxes = 25;
+    final totalQuestions = ref.watch(bingoBoxesProvider.notifier).questionsCount;
+    final totalBoxes = totalQuestions;
     final scannedCount = currentUser?.scannedBoxes.length ?? 0;
-    final remainingForBingo = 25 - scannedCount; // All 25 needed for bingo
+    final remainingForBingo = totalQuestions - scannedCount; 
 
     // Update current question index based on completed boxes
     final completedBoxes = bingoBoxes.where((box) => box.isSelected).length;
@@ -887,7 +898,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           style: AppTypography.bodyMedium(context, color: AppColors.lightCyan, fontWeight: FontWeight.w600),
                         ),
                       Text(
-                        '${((scannedCount / totalBoxes) * 100).toInt()}%',
+                        '${totalBoxes > 0 ? ((scannedCount / totalBoxes) * 100).toInt() : 0}%',
                         style: AppTypography.label(context, color: AppColors.lightCyan.withOpacity(0.8)),
                       ),
                     ],
@@ -899,7 +910,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
-                      value: scannedCount / totalBoxes,
+                      value: totalBoxes > 0 ? scannedCount / totalBoxes : 0,
                       backgroundColor: Colors.white.withOpacity(0.1),
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         AppColors.lightCyan,

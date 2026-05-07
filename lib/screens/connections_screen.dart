@@ -47,8 +47,9 @@ class ConnectionsScreen extends ConsumerWidget {
         )
         .toList();
 
-    // Check if bingo is completed (all 25 boxes scanned)
-    final isBingoCompleted = currentUser?.scannedBoxes.length == 25;
+    // Check if bingo is completed (all boxes scanned)
+    final totalQuestions = ref.watch(bingoBoxesProvider.notifier).questionsCount;
+    final isBingoCompleted = currentUser?.scannedBoxes.length == totalQuestions;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -78,7 +79,7 @@ class ConnectionsScreen extends ConsumerWidget {
                 const Icon(Icons.people, color: AppColors.lightCyan, size: 16),
                 const SizedBox(width: 4),
                 Text(
-                  '${connections.length}/25',
+                  '${connections.length}/$totalQuestions',
                   style: AppTypography.label(context, color: AppColors.lightCyan),
                 ),
               ],
@@ -133,7 +134,7 @@ class ConnectionsScreen extends ConsumerWidget {
                                 style: AppTypography.h3(context, fontWeight: FontWeight.w900),
                               ),
                               Text(
-                                'You\'ve connected with 25 people!',
+                                'You\'ve connected with $totalQuestions people!',
                                 style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.9)),
                               ),
                             ],
@@ -203,21 +204,21 @@ class ConnectionsScreen extends ConsumerWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                            Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Progress: ${connections.length}/25',
+                                'Progress: ${connections.length}/$totalQuestions',
                                 style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w600),
                               ),
                               Text(
-                                '${((connections.length / 25) * 100).toInt()}%',
+                                '${totalQuestions > 0 ? ((connections.length / totalQuestions) * 100).toInt() : 0}%',
                                 style: AppTypography.bodySmall(context, color: AppColors.lightCyan, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Container(
+                            Container(
                             width: double.infinity,
                             height: 8,
                             decoration: BoxDecoration(
@@ -226,7 +227,7 @@ class ConnectionsScreen extends ConsumerWidget {
                             ),
                             child: FractionallySizedBox(
                               alignment: Alignment.centerLeft,
-                              widthFactor: connections.length / 25,
+                              widthFactor: totalQuestions > 0 ? connections.length / totalQuestions : 0,
                               child: Container(
                                 decoration: BoxDecoration(
                                   gradient: AppColors.primaryGradient,
