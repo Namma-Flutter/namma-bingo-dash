@@ -5,9 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/rendering.dart';
-import '../providers/app_providers.dart';
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../utils/download_helper.dart';
+import '../const/app_colors.dart';
+import '../providers/app_providers.dart';
+import '../utils/typography_utils.dart';
 
 class QrGeneratorScreen extends ConsumerStatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -26,23 +29,13 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
     });
 
     try {
-      // Capture QR code as image
       RenderRepaintBoundary boundary = 
           _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-      // For web: trigger browser download  
-      final base64String = base64Encode(pngBytes);
-      final dataUrl = 'data:image/png;base64,$base64String';
-      final anchor = html.document.createElement('a') as html.AnchorElement
-        ..href = dataUrl
-        ..style.display = 'none'
-        ..download = 'qr_code_${DateTime.now().millisecondsSinceEpoch}.png';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
+      await saveImage(pngBytes, 'qr_code_${DateTime.now().millisecondsSinceEpoch}.png');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +47,7 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                 Text('QR Code downloaded!'),
               ],
             ),
-            backgroundColor: const Color(0xFF00FF88),
+            backgroundColor: AppColors.primaryBlue,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -100,32 +93,27 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
     
     if (currentUser == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: const Text('My QR Code'),
-          backgroundColor: const Color(0xFF0D1F1C),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
+          title: Text(
+            'My QR Code',
+            style: AppTypography.h2(context),
+          ),
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_add, size: 64, color: Color(0xFF00FF88)),
-              SizedBox(height: 16),
+              const Icon(Icons.person_add, size: 64, color: AppColors.lightCyan),
+              const SizedBox(height: 16),
               Text(
                 'Please set up your profile first',
-                style: TextStyle(
-                  fontSize: 18, 
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                style: AppTypography.h3(context),
               ),
-              SizedBox(height: 8),
-              Text(
+              const SizedBox(height: 8),
+               Text(
                 'Go to Profile to add your information',
-                style: TextStyle(color: Colors.white70),
+                style: AppTypography.bodySmall(context, color: Colors.white70),
               ),
             ],
           ),
@@ -133,7 +121,6 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
       );
     }
 
-    // Create QR data with security validation and user profile details
     final qrDataObject = {
       'app': 'namma_bingo_app',
       'signature': 'BINGO_USER_V1',
@@ -147,516 +134,269 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
       'createdAt': DateTime.now().millisecondsSinceEpoch,
     };
     
-    // Encode the QR data for security
     final jsonString = jsonEncode(qrDataObject);
     final qrData = base64Encode(utf8.encode(jsonString));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1F1C),
-      appBar: AppBar(
-        title: const Text('My QR Code'),
-        backgroundColor: const Color(0xFF0D1F1C),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.backgroundGradient,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Profile info card
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A3A35),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF00FF88).withOpacity(0.3),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              title: Text(
+                'My QR Code',
+                style: AppTypography.h2(context),
               ),
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF00FF88),
-                        width: 2,
+              centerTitle: true,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Profile info card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ),
-                    child: ClipOval(
-                      child: _isValidUrl(currentUser.profilePictureUrl)
-                          ? Image.network(
-                              currentUser.profilePictureUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: const Color(0xFF00FF88).withOpacity(0.2),
-                                child: Center(
-                                  child: Text(
-                                    currentUser.name.isNotEmpty 
-                                        ? currentUser.name.substring(0, 1).toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      color: Color(0xFF00FF88),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              color: const Color(0xFF00FF88).withOpacity(0.2),
-                              child: Center(
-                                child: Text(
-                                  currentUser.name.isNotEmpty 
-                                      ? currentUser.name.substring(0, 1).toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: Color(0xFF00FF88),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
-                                  ),
-                                ),
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.lightCyan,
+                                width: 2,
                               ),
                             ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentUser.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            child: ClipOval(
+                              child: _isValidUrl(currentUser.profilePictureUrl)
+                                  ? Image.network(
+                                      currentUser.profilePictureUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                        color: AppColors.primaryBlue.withOpacity(0.2),
+                                        child: Center(
+                                          child: Text(
+                                            currentUser.name.isNotEmpty 
+                                                ? currentUser.name.substring(0, 1).toUpperCase()
+                                                : '?',
+                                            style: AppTypography.h2(context, color: AppColors.lightCyan),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: AppColors.primaryBlue.withOpacity(0.2),
+                                      child: Center(
+                                        child: Text(
+                                          currentUser.name.isNotEmpty 
+                                              ? currentUser.name.substring(0, 1).toUpperCase()
+                                              : '?',
+                                          style: const TextStyle(
+                                            color: AppColors.lightCyan,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 24,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Connections: ${currentUser.scannedBoxes.length}/25',
-                          style: const TextStyle(
-                            color: Color(0xFF00FF88),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-              
-            const SizedBox(height: 32),
-            
-            // Instructions
-            const Text(
-              'Share this QR code with others',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'When someone scans this code, they\'ll connect with you instantly!',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // QR Code with actual generation
-            RepaintBoundary(
-              key: _qrKey,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF00FF88),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF00FF88).withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 250.0,
-                  backgroundColor: Colors.white,
-                  gapless: false,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: Color(0xFF0D1F1C),
-                  ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: Color(0xFF0D1F1C),
-                  ),
-                  errorStateBuilder: (cxt, err) {
-                    return Container(
-                      width: 250,
-                      height: 250,
-                      alignment: Alignment.center,
-                      child: const Text(
-                        "QR Error",
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-                          const SizedBox(height: 16),
-            
-            // Security indicator
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A3A35),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF00FF88).withOpacity(0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.security,
-                    color: const Color(0xFF00FF88),
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      'Secured & Verified',
-                      style: TextStyle(
-                        color: Color(0xFF00FF88),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-                          const SizedBox(height: 24),
-            
-            // QR Data preview (for development) - COMMENTED OUT
-            /*
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A3A35),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF00FF88).withOpacity(0.2),
-                ),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  dividerColor: Colors.transparent,
-                  expansionTileTheme: const ExpansionTileThemeData(
-                    iconColor: Color(0xFF00FF88),
-                    collapsedIconColor: Color(0xFF00FF88),
-                  ),
-                ),
-                child: ExpansionTile(
-                  title: Row(
-                    children: [
-                      Icon(
-                        Icons.code, 
-                        size: 18, 
-                        color: const Color(0xFF00FF88)
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'QR Data Preview (Dev)',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  initiallyExpanded: false,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0D1F1C),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF00FF88).withOpacity(0.1),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.data_object,
-                                  size: 14,
-                                  color: const Color(0xFF00FF88),
+                                Text(
+                                  currentUser.name,
+                                  style: AppTypography.h3(context),
                                 ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Raw JSON Data:',
-                                  style: TextStyle(
-                                    color: Color(0xFF00FF88),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Connections: ${currentUser.scannedBoxes.length}/25',
+                                  style: AppTypography.bodySmall(context, color: AppColors.lightCyan, fontWeight: FontWeight.w500),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 8),
-                            SelectableText(
-                              qrData,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 10,
-                                fontFamily: 'monospace',
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            */
-
-            const SizedBox(height: 24),
-
-            // QR Code Contains Section - COMMENTED OUT
-            /*
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A3A35),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF00FF88).withOpacity(0.3),
-                ),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  dividerColor: Colors.transparent,
-                  expansionTileTheme: const ExpansionTileThemeData(
-                    iconColor: Color(0xFF00FF88),
-                    collapsedIconColor: Color(0xFF00FF88),
-                  ),
-                ),
-                child: ExpansionTile(
-                  title: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: const Color(0xFF00FF88), size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'QR Code Contains',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  initiallyExpanded: false,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDataPreviewItem('👤 Name', currentUser.name),
-                          _buildDataPreviewItem('🔗 LinkedIn URL', currentUser.linkedinUrl),
-                          if (currentUser.profilePictureUrl?.isNotEmpty == true)
-                            _buildDataPreviewItem('📸 Profile Picture', currentUser.profilePictureUrl!),
-                          _buildDataPreviewItem('🆔 User ID', currentUser.id),
-                          _buildDataPreviewItem('📊 Scanned Boxes', currentUser.scannedBoxes.join(', ')),
-                          _buildDataPreviewItem('⏰ Timestamp', DateTime.now().toString().split('.')[0]),
-                          const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00FF88).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: const Color(0xFF00FF88).withOpacity(0.3),
-                              ),
-                            ),
-                            child: const Text(
-                              'QR contains your profile details with timestamp for accurate scanning.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF00FF88),
-                                fontStyle: FontStyle.italic,
-                              ),
-                              textAlign: TextAlign.center,
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                    const SizedBox(height: 32),
+
+                    // QR Card
+                    RepaintBoundary(
+                      key: _qrKey,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'SCAN ME',
+                              style: AppTypography.h2(context, color: AppColors.background, letterSpacing: 4, fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: QrImageView(
+                                data: qrData,
+                                version: QrVersions.auto,
+                                size: MediaQuery.of(context).size.width * 0.6,
+                                foregroundColor: AppColors.background,
+                                gapless: false,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'Show this to others so they can scan you!',
+                              style: AppTypography.bodySmall(context, color: Colors.black54),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Download/Save Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryBlue.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(15),
+                                onTap: () => context.go('/profile'),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.edit, color: Colors.white, size: 16),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          'EDIT PROFILE',
+                                          style: AppTypography.label(context, color: Colors.white, fontWeight: FontWeight.bold),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(15),
+                                onTap: _isDownloading ? null : _downloadQRCode,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_isDownloading)
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.lightCyan,
+                                          ),
+                                        )
+                                      else
+                                          const Icon(Icons.download, color: Colors.white, size: 16),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          _isDownloading ? 'SAVING...' : 'SAVE QR',
+                                          style: AppTypography.label(context, color: Colors.white, fontWeight: FontWeight.bold),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-            ),
-            */
-
-            const SizedBox(height: 32),
-            
-            // Download/Save Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF00AA66), Color(0xFF00FF88)],
-                      ),
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF00FF88).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(15),
-                        onTap: () => context.go('/profile'),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.edit, color: Color(0xFF0D1F1C), size: 16),
-                              SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  'EDIT PROFILE',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0D1F1C),
-                                    letterSpacing: 0.8,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Container(
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A3A35),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: const Color(0xFF00FF88),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(15),
-                        onTap: _isDownloading ? null : _downloadQRCode,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isDownloading)
-                                const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFF00FF88),
-                                  ),
-                                )
-                              else
-                                const Icon(Icons.download, color: Color(0xFF00FF88), size: 16),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  _isDownloading ? 'SAVING...' : 'SAVE QR',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF00FF88),
-                                    letterSpacing: 0.8,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

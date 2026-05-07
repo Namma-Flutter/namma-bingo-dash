@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../const/app_config.dart';
+import '../const/app_colors.dart';
 import 'dart:math' as math;
 
 class BingoGrid extends StatelessWidget {
@@ -21,12 +22,14 @@ class BingoGrid extends StatelessWidget {
     if (boxes.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF00FF88),
+          color: AppColors.lightCyan,
         ),
       );
     }
     
     return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         childAspectRatio: 1,
@@ -87,13 +90,20 @@ class BingoBoxWidget extends StatelessWidget {
         child: Stack(
           children: [
             Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isScannedByCurrentUser ? const Color(0xFF00FF88) : Colors.blue,
-                  width: 3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue).withOpacity(0.4),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-              ),
               child: ClipOval(
                 child: Image.network(
                   box.scannedByProfilePicture!,
@@ -106,7 +116,7 @@ class BingoBoxWidget extends StatelessWidget {
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Container(
-                      color: const Color(0xFF1A3A35),
+                      color: AppColors.cardBackground,
                       child: Center(
                         child: CircularProgressIndicator(
                           value: loadingProgress.expectedTotalBytes != null
@@ -114,7 +124,7 @@ class BingoBoxWidget extends StatelessWidget {
                                 loadingProgress.expectedTotalBytes!
                               : null,
                           strokeWidth: 2,
-                          color: const Color(0xFF00FF88),
+                          color: AppColors.lightCyan,
                         ),
                       ),
                     );
@@ -130,16 +140,16 @@ class BingoBoxWidget extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00FF88),
+                    color: AppColors.lightCyan,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF0D1F1C),
+                      color: AppColors.background,
                       width: 2,
                     ),
                   ),
                   child: const Icon(
                     Icons.check,
-                    color: Color(0xFF0D1F1C),
+                    color: AppColors.background,
                     size: 12,
                   ),
                 ),
@@ -159,10 +169,17 @@ class BingoBoxWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isScannedByCurrentUser ? const Color(0xFF00FF88) : Colors.blue,
+                  color: isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue,
                   width: 3,
                 ),
-                color: const Color(0xFF1A3A35),
+                gradient: AppColors.primaryGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: (isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue).withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
               ),
               child: _buildFallbackAvatar(),
             ),
@@ -173,16 +190,16 @@ class BingoBoxWidget extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00FF88),
+                    color: AppColors.lightCyan,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF0D1F1C),
+                      color: AppColors.background,
                       width: 2,
                     ),
                   ),
                   child: const Icon(
                     Icons.check,
-                    color: Color(0xFF0D1F1C),
+                    color: AppColors.background,
                     size: 12,
                   ),
                 ),
@@ -205,7 +222,11 @@ class BingoBoxWidget extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.transparent,
+            color: Colors.white.withOpacity(0.03),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.05),
+              width: 1,
+            ),
           ),
           child: Center(
             child: Icon(
@@ -229,7 +250,14 @@ class BingoBoxWidget extends StatelessWidget {
         style: const TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF00FF88),
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black26,
+              offset: Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
     );

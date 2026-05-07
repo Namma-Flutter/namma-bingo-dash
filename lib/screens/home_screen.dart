@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:math' as math;
 import '../providers/app_providers.dart';
 import '../widgets/bingo_grid.dart';
 import '../const/questions.dart';
+import '../const/app_colors.dart';
+import '../utils/typography_utils.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -13,18 +16,37 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
   int _currentQuestionIndex = 0;
   bool _showingQuestionMode = false;
+  late AnimationController _dashController;
+  late AnimationController _dashFloatController;
 
   @override
   void initState() {
     super.initState();
+    _dashController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+
+    _dashFloatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
     // Initialize current question index based on completed boxes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final bingoBoxes = ref.read(bingoBoxesProvider.notifier);
       _currentQuestionIndex = bingoBoxes.completedCount;
     });
+  }
+
+  @override
+  void dispose() {
+    _dashController.dispose();
+    _dashFloatController.dispose();
+    super.dispose();
   }
 
   void _showPersonDetails(BuildContext context, int boxId) {
@@ -33,7 +55,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0D1F1C),
+      backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -63,7 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF00FF88),
+                      color: AppColors.lightCyan,
                       width: 2,
                     ),
                   ),
@@ -100,17 +122,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00FF88).withOpacity(0.2),
+                          color: AppColors.lightCyan.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF00FF88),
+                            color: AppColors.lightCyan,
                             width: 1,
                           ),
                         ),
                         child: const Text(
                           'Connected',
                           style: TextStyle(
-                            color: Color(0xFF00FF88),
+                            color: AppColors.lightCyan,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -130,10 +152,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A3A35),
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF00FF88).withOpacity(0.3),
+                    color: AppColors.lightCyan.withOpacity(0.3),
                   ),
                 ),
                 child: Column(
@@ -143,14 +165,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         const Icon(
                           Icons.quiz,
-                          color: Color(0xFF00FF88),
+                          color: AppColors.lightCyan,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         const Text(
                           'Question Answered:',
                           style: TextStyle(
-                            color: Color(0xFF00FF88),
+                            color: AppColors.lightCyan,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -218,7 +240,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final initial = name?.isNotEmpty == true ? name![0].toUpperCase() : '?';
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF1A3A35),
+        color: AppColors.surface,
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -227,7 +249,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF00FF88),
+            color: AppColors.lightCyan,
           ),
         ),
       ),
@@ -289,10 +311,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFF0D1F1C),
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF00FF88), width: 2),
+            side: const BorderSide(color: AppColors.primaryBlue, width: 2),
           ),
           child: Container(
             constraints: BoxConstraints(
@@ -340,10 +362,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A3A35),
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF00FF88).withOpacity(0.3),
+                            color: AppColors.lightCyan.withOpacity(0.3),
                           ),
                         ),
                         child: ListTile(
@@ -354,13 +376,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00FF88).withOpacity(0.2),
+                              color: AppColors.primaryBlue.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '${questionIndex + 1}',
                               style: const TextStyle(
-                                color: Color(0xFF00FF88),
+                                color: AppColors.lightCyan,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
@@ -376,7 +398,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           trailing: const Icon(
                             Icons.chevron_right,
-                            color: Color(0xFF00FF88),
+                            color: AppColors.lightCyan,
                             size: 24,
                           ),
                           onTap: () {
@@ -414,10 +436,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFF0D1F1C),
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF00FF88), width: 2),
+            side: const BorderSide(color: AppColors.primaryBlue, width: 2),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -433,13 +455,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00FF88),
+                        color: AppColors.primaryBlue,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         'Question ${questionIndex + 1}/25',
                         style: const TextStyle(
-                          color: Color(0xFF0D1F1C),
+                          color: AppColors.background,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -466,10 +488,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A3A35),
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF00FF88).withOpacity(0.3),
+                      color: AppColors.lightCyan.withOpacity(0.3),
                     ),
                   ),
                   child: Text(
@@ -497,7 +519,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Navigator.of(context).pop();
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF00FF88)),
+                          side: const BorderSide(color: AppColors.lightCyan),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -506,7 +528,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: const Text(
                           'Cancel',
                           style: TextStyle(
-                            color: Color(0xFF00FF88),
+                            color: AppColors.lightCyan,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -525,8 +547,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00FF88),
-                          foregroundColor: const Color(0xFF0D1F1C),
+                          backgroundColor: AppColors.primaryBlue,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -557,10 +579,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFF0D1F1C),
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF00FF88), width: 2),
+            side: const BorderSide(color: AppColors.primaryBlue, width: 2),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -569,7 +591,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const Icon(
                   Icons.celebration,
-                  color: Color(0xFF00FF88),
+                  color: AppColors.dashYellow,
                   size: 48,
                 ),
                 const SizedBox(height: 16),
@@ -591,8 +613,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF88),
-                    foregroundColor: const Color(0xFF0D1F1C),
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -629,17 +651,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1F1C),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'Namma Bingo',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: AppTypography.scale(context, 32),
+              height: AppTypography.scale(context, 32),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 1),
+                image: const DecorationImage(
+                  image: NetworkImage(
+                    'https://media.licdn.com/dms/image/v2/D560BAQHJALM_HLdjzg/company-logo_200_200/company-logo_200_200/0/1710185434227/nammaflutter_logo?e=1779926400&v=beta&t=OXTj9jG3myiQ53opFlHR94j8Obapxo0V7FWE8nwE5NA',
+                        // 'https://instagram.fmaa2-2.fna.fbcdn.net/v/t51.2885-19/432574850_3559687864280900_8167034722177835075_n.jpg',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Namma Flutter Community',
+                    style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'BINGO CHALLENGE',
+                    style: AppTypography.bodyMedium(context, fontWeight: FontWeight.w700, color: AppColors.lightCyan),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
         leading: Padding(
@@ -655,7 +707,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       height: 40,
                       errorBuilder: (context, error, stackTrace) => Container(
                         decoration: const BoxDecoration(
-                          color: Color(0xFF1A3A35),
+                          color: AppColors.surface,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -663,11 +715,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             currentUser.name.isNotEmpty
                                 ? currentUser.name[0].toUpperCase()
                                 : 'U',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00FF88),
-                            ),
+                            style: AppTypography.h3(context, color: AppColors.lightCyan),
                           ),
                         ),
                       ),
@@ -675,7 +723,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   )
                 : Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFF1A3A35),
+                      color: AppColors.surface,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -683,11 +731,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         currentUser?.name.isNotEmpty == true
                             ? currentUser!.name[0].toUpperCase()
                             : 'U',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00FF88),
-                        ),
+                        style: AppTypography.h3(context, color: AppColors.lightCyan),
                       ),
                     ),
                   ),
@@ -695,52 +739,181 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () => context.go('/profile'),
+            onPressed: () => context.push('/profile'),
             icon: const Icon(Icons.settings, color: Colors.white),
           ),
         ],
       ),
-      body: Column(
+      extendBodyBehindAppBar: true,
+      body: Stack(
         children: [
-          // Stats Section
-          Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Bingo progress text
-                if (remainingForBingo > 0)
-                  Text(
-                    '$remainingForBingo more to go bingo!',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF00FF88),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                const SizedBox(height: 16),
-
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: scannedCount / totalBoxes,
-                    backgroundColor: const Color(0xFF1A3A35),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF00FF88),
-                    ),
-                    minHeight: 12,
-                  ),
-                ),
-              ],
+          // Background Gradient
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppColors.backgroundGradient,
+              ),
             ),
           ),
+          // Animated Background
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _dashController,
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    // Dash 1
+                    Positioned(
+                      top: 100 + (math.sin(_dashController.value * 2 * math.pi) * 50),
+                      left: -50 + (_dashController.value * MediaQuery.of(context).size.width * 1.5) % (MediaQuery.of(context).size.width + 200),
+                      child: Opacity(
+                        opacity: 0.1,
+                        child: Transform.rotate(
+                          angle: _dashController.value * 2 * math.pi * 0.2,
+                          child: Image.network(
+                            'https://flutter.dev/assets/shadow-dash.d59d0e8266b087a7a7f8a61c50ad4f6e.png',
+                            width: 250,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Dash 2
+                    Positioned(
+                      bottom: 150 + (math.cos(_dashController.value * 2 * math.pi) * 30),
+                      right: -100 + ((1 - _dashController.value) * MediaQuery.of(context).size.width * 1.2) % (MediaQuery.of(context).size.width + 300),
+                      child: Opacity(
+                        opacity: 0.08,
+                        child: Transform.rotate(
+                          angle: -_dashController.value * 2 * math.pi * 0.1,
+                          child: Image.network(
+                            'https://flutter.dev/assets/shadow-dash.d59d0e8266b087a7a7f8a61c50ad4f6e.png',
+                            width: 350,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Dash 3 (Static float)
+                    Positioned(
+                      top: 300,
+                      right: 20,
+                      child: AnimatedBuilder(
+                        animation: _dashFloatController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _dashFloatController.value * 20),
+                            child: Opacity(
+                              opacity: 0.05,
+                              child: Image.network(
+                                'https://flutter.dev/assets/shadow-dash.d59d0e8266b087a7a7f8a61c50ad4f6e.png',
+                                width: 150,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          
+          // Foreground Content
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Bingo Challenge Hero Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'BINGO',
+                                style: AppTypography.label(context, color: Colors.white, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'CHALLENGE',
+                              style: AppTypography.h2(context, fontWeight: FontWeight.w200, letterSpacing: 2),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Connect with fellow Flutter developers!',
+                          style: AppTypography.caption(context, color: Colors.white54),
+                        ),
+                      ],
+                    ),
+                  ),
+            // Stats Section
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      if (remainingForBingo > 0)
+                        Text(
+                          '$remainingForBingo more to go bingo!',
+                          style: AppTypography.bodyMedium(context, color: AppColors.lightCyan, fontWeight: FontWeight.w600),
+                        ),
+                      Text(
+                        '${((scannedCount / totalBoxes) * 100).toInt()}%',
+                        style: AppTypography.label(context, color: AppColors.lightCyan.withOpacity(0.8)),
+                      ),
+                    ],
+                  ),
 
-          // Bingo Grid
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
+                  const SizedBox(height: 12),
+
+                  // Progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: scannedCount / totalBoxes,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.lightCyan,
+                      ),
+                      minHeight: 8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Bingo Grid
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width < 400 ? 8 : 16),
               child: BingoGrid(
                 boxes: bingoBoxes,
                 onBoxTap: currentUser != null
@@ -762,55 +935,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 currentUser: currentUser,
               ),
             ),
-          ),
 
-          // Helper text
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Tap filled slots to view details and connect on LinkedIn',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white.withOpacity(0.5),
+            // Helper text
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Tap filled slots to view details and connect on LinkedIn',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
 
-          // Scan Button
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton.icon(
-                onPressed: currentUser != null
-                    ? _showUnfilledQuestions
-                    : () => context.go('/profile'),
-                icon: const Icon(Icons.qr_code_scanner, size: 28),
-                label: Text(
-                  _currentQuestionIndex >= 25
-                      ? 'All Questions Complete!'
-                      : 'Scan to Connect',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+            // Scan Button
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Container(
+                width: double.infinity,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: _currentQuestionIndex >= 25
+                      ? const LinearGradient(colors: [Color(0xFF00AA66), Color(0xFF00CC88)])
+                      : AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_currentQuestionIndex >= 25 ? const Color(0xFF00AA66) : AppColors.primaryBlue).withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _currentQuestionIndex >= 25
-                      ? const Color(0xFF00AA66)
-                      : const Color(0xFF00FF88),
-                  foregroundColor: const Color(0xFF0D1F1C),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                child: ElevatedButton.icon(
+                  onPressed: currentUser != null
+                      ? _showUnfilledQuestions
+                      : () => context.go('/profile'),
+                  icon: const Icon(Icons.qr_code_scanner, size: 28),
+                  label: Text(
+                    _currentQuestionIndex >= 25
+                        ? 'All Questions Complete!'
+                        : 'Scan to Connect',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  elevation: 0,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
+    ),
+  ],
+),
+);
   }
 }

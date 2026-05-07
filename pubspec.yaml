@@ -74,8 +74,14 @@ dependencies:
   # Navigation
   go_router: ^14.2.7
   
+  # UI Enhancements
+  lottie: ^3.1.0
+  shimmer: ^3.0.0
+  
   # Shared preferences for storing data
   shared_preferences: ^2.2.2
+  google_fonts: ^8.1.0
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:

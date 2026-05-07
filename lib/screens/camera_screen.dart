@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:go_router/go_router.dart';
 import 'package:vibration/vibration.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/app_providers.dart';
+import '../const/app_colors.dart';
 import '../const/questions.dart';
 import '../const/app_config.dart';
 import 'dart:convert';
+import '../utils/typography_utils.dart';
 import 'dart:math' as math;
 
 class CameraScreen extends ConsumerStatefulWidget {
@@ -148,9 +150,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF00FF88).withOpacity(_scaleAnimation.value),
-                Color(0xFF00CC66).withOpacity(_scaleAnimation.value),
-                Color(0xFF00AA44).withOpacity(_scaleAnimation.value),
+                AppColors.lightCyan.withOpacity(_scaleAnimation.value),
+                AppColors.primaryBlue.withOpacity(_scaleAnimation.value),
+                AppColors.navyDeep.withOpacity(_scaleAnimation.value),
               ],
             ),
           ),
@@ -205,7 +207,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         child: const Icon(
                           Icons.check_rounded,
                           size: 80,
-                          color: Color(0xFF00FF88),
+                          color: AppColors.primaryBlue,
                         ),
                       ),
                     ),
@@ -224,19 +226,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           children: [
                             Text(
                               visibleText,
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 4.0,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 10,
-                                    color: Colors.black.withOpacity(0.3),
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
+                              style: AppTypography.h1(context, letterSpacing: 4.0),
                             ),
                             const SizedBox(height: 20),
                             if (_pulseAnimation.value > 0.7) // Show subtitle after main text
@@ -244,12 +234,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                 scale: (_pulseAnimation.value - 0.7) / 0.3,
                                 child: Text(
                                   "Connection Established",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 1.0,
-                                  ),
+                                  style: AppTypography.bodyLarge(context, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500),
                                 ),
                               ),
                           ],
@@ -308,7 +293,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(
@@ -324,8 +309,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                const Color(0xFF0D1F1C),
-                const Color(0xFF1A3A35).withOpacity(0.8),
+                AppColors.background,
+                AppColors.cardBackground.withOpacity(0.8),
               ],
             ),
           ),
@@ -353,25 +338,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               const SizedBox(height: 24),
               
               // Title
-              const Text(
+               Text(
                 'Unauthorized QR Code',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.h3(context),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               
               // Message
-              const Text(
+               Text(
                 'This QR code is not from the Bingo app. Please scan only valid user QR codes to make connections.',
-                style: TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -388,20 +365,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ref.read(scanStatusProvider.notifier).state = null;
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF88),
-                    foregroundColor: const Color(0xFF0D1F1C),
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child:  Text(
                     'Try Again',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -580,7 +554,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   ),
                   Text(
                     questionAnswered,
-                    style: const TextStyle(fontSize: 11),
+                    style: AppTypography.caption(context),
                   ),
                 ],
               ],
@@ -648,7 +622,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A3A2E),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -701,7 +675,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         height: 280,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: const Color(0xFF00FF87),
+                            color: AppColors.lightCyan,
                             width: 3,
                           ),
                           borderRadius: BorderRadius.circular(32),
@@ -717,8 +691,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           height: 50,
                           decoration: BoxDecoration(
                             border: Border(
-                              top: BorderSide(color: const Color(0xFF00FF87), width: 4),
-                              left: BorderSide(color: const Color(0xFF00FF87), width: 4),
+                              top: BorderSide(color: AppColors.lightCyan, width: 4),
+                              left: BorderSide(color: AppColors.lightCyan, width: 4),
                             ),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(32),
@@ -734,8 +708,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           height: 50,
                           decoration: BoxDecoration(
                             border: Border(
-                              top: BorderSide(color: const Color(0xFF00FF87), width: 4),
-                              right: BorderSide(color: const Color(0xFF00FF87), width: 4),
+                              top: BorderSide(color: AppColors.lightCyan, width: 4),
+                              right: BorderSide(color: AppColors.lightCyan, width: 4),
                             ),
                             borderRadius: const BorderRadius.only(
                               topRight: Radius.circular(32),
@@ -751,8 +725,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           height: 50,
                           decoration: BoxDecoration(
                             border: Border(
-                              bottom: BorderSide(color: const Color(0xFF00FF87), width: 4),
-                              left: BorderSide(color: const Color(0xFF00FF87), width: 4),
+                              bottom: BorderSide(color: AppColors.lightCyan, width: 4),
+                              left: BorderSide(color: AppColors.lightCyan, width: 4),
                             ),
                             borderRadius: const BorderRadius.only(
                               bottomLeft: Radius.circular(32),
@@ -768,8 +742,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           height: 50,
                           decoration: BoxDecoration(
                             border: Border(
-                              bottom: BorderSide(color: const Color(0xFF00FF87), width: 4),
-                              right: BorderSide(color: const Color(0xFF00FF87), width: 4),
+                              bottom: BorderSide(color: AppColors.lightCyan, width: 4),
+                              right: BorderSide(color: AppColors.lightCyan, width: 4),
                             ),
                             borderRadius: const BorderRadius.only(
                               bottomRight: Radius.circular(32),
@@ -789,7 +763,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFF00FF87), width: 1),
+                    border: Border.all(color: AppColors.lightCyan, width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -948,11 +922,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                           const SizedBox(height: 20),
                           Text(
                             scanStatus,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppTypography.bodyLarge(context, fontWeight: FontWeight.w600),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -980,7 +950,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(
@@ -1025,25 +995,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               const SizedBox(height: 24),
               
               // Title
-              const Text(
+              Text(
                 'Cannot Scan Your Own QR',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.h3(context),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               
               // Message
-              const Text(
+               Text(
                 'You cannot scan your own QR code to make a connection. Please ask someone else to scan your code instead.',
-                style: TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                  style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1060,8 +1022,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ref.read(scanStatusProvider.notifier).state = null;
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF88),
-                    foregroundColor: const Color(0xFF0D1F1C),
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1096,7 +1058,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(
@@ -1141,13 +1103,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               const SizedBox(height: 24),
               
               // Title
-              const Text(
+              Text(
                 'Already Connected',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.h3(context),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -1176,8 +1134,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ref.read(scanStatusProvider.notifier).state = null;
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF88),
-                    foregroundColor: const Color(0xFF0D1F1C),
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1212,7 +1170,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF0D1F1C),
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(
@@ -1257,13 +1215,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               const SizedBox(height: 24),
               
               // Title
-              const Text(
+              Text(
                 'Duplicate Scan Detected',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.h3(context),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
@@ -1271,11 +1225,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               // Message
               Text(
                 'You have already scanned $userName. Please scan someone new to continue building your network.',
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1292,20 +1242,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ref.read(scanStatusProvider.notifier).state = null;
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF88),
-                    foregroundColor: const Color(0xFF0D1F1C),
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Find New Connection',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

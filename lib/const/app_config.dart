@@ -2,17 +2,29 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
   static int get questionsCount {
-    final value = dotenv.env['QUESTIONS_COUNT'];
-    return value != null ? int.tryParse(value) ?? 25 : 25;
+    try {
+      final value = dotenv.env['QUESTIONS_COUNT'];
+      return value != null ? int.tryParse(value) ?? 25 : 25;
+    } catch (_) {
+      return 25;
+    }
   }
   
   static bool get allowRepetitivePersonScan {
-    final value = dotenv.env['ALLOW_REPETITIVE_PERSON_SCAN'];
-    return value?.toLowerCase() == 'true';
+    try {
+      final value = dotenv.env['ALLOW_REPETITIVE_PERSON_SCAN'];
+      return value?.toLowerCase() == 'true';
+    } catch (_) {
+      return false;
+    }
   }
   
   static bool get allowSameUserScan {
-    final value = dotenv.env['ALLOW_SAME_USER_SCAN'];
-    return value?.toLowerCase() == 'true';
+    try {
+      final value = dotenv.env['ALLOW_SAME_USER_SCAN'];
+      return value?.toLowerCase() == 'true';
+    } catch (_) {
+      return false;
+    }
   }
 }

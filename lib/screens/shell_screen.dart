@@ -1,6 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../const/app_colors.dart';
+import '../utils/typography_utils.dart';
 
 class ShellScreen extends ConsumerStatefulWidget {
   final Widget child;
@@ -49,43 +53,46 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
 
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF152926),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
+      bottomNavigationBar: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildNavItem(
-                  icon: Icons.grid_view_rounded,
-                  label: 'Grid',
-                  index: 0,
-                  isSelected: _selectedIndex == 0,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 0.5,
                 ),
-                _buildNavItem(
-                  icon: Icons.people_outline,
-                  label: 'Network',
-                  index: 1,
-                  isSelected: _selectedIndex == 1,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavItem(
+                      icon: Icons.grid_view_rounded,
+                      label: 'Grid',
+                      index: 0,
+                      isSelected: _selectedIndex == 0,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.people_outline,
+                      label: 'Network',
+                      index: 1,
+                      isSelected: _selectedIndex == 1,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.qr_code_rounded,
+                      label: 'QR Code',
+                      index: 2,
+                      isSelected: _selectedIndex == 2,
+                    ),
+                  ],
                 ),
-                _buildNavItem(
-                  icon: Icons.qr_code_rounded,
-                  label: 'QR Code',
-                  index: 2,
-                  isSelected: _selectedIndex == 2,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -103,19 +110,15 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
       child: GestureDetector(
         onTap: () => _onItemTapped(index),
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
             color: isSelected 
-              ? const Color(0xFF00FF88).withOpacity(0.15) 
+              ? AppColors.primaryBlue.withOpacity(0.1) 
               : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: isSelected 
-              ? Border.all(
-                  color: const Color(0xFF00FF88).withOpacity(0.3),
-                  width: 1,
-                )
-              : null,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -124,24 +127,31 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
               Icon(
                 icon,
                 color: isSelected 
-                  ? const Color(0xFF00FF88) 
-                  : Colors.white.withOpacity(0.6),
+                  ? AppColors.lightCyan 
+                  : Colors.white.withOpacity(0.4),
                 size: isSelected ? 22 : 18,
               ),
-              if (!isSelected) ...[
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: AppTypography.label(context, 
+                  color: isSelected ? AppColors.lightCyan : Colors.white.withOpacity(0.4), 
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                  fontSize: 10,
                 ),
-              ],
+                textAlign: TextAlign.center,
+                maxLines: 1,
+              ),
+              if (isSelected)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.lightCyan,
+                    shape: BoxShape.circle,
+                  ),
+                ),
             ],
           ),
         ),
