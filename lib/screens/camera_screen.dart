@@ -149,9 +149,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.lightCyan.withOpacity(_scaleAnimation.value),
-                AppColors.primaryBlue.withOpacity(_scaleAnimation.value),
-                AppColors.navyDeep.withOpacity(_scaleAnimation.value),
+                AppColors.lightCyan.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
+                AppColors.primaryBlue.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
+                AppColors.navyDeep.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
               ],
             ),
           ),
@@ -164,12 +164,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     animation: _successAnimationController,
                     builder: (context, child) {
                       final delay = index * 0.2;
-                      final animValue = math.max(0.0, (_scaleAnimation.value - delay) / (1.0 - delay));
+                      final animValue = math.max(0.0, (_scaleAnimation.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
                       return Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3 * (1 - animValue)),
+                            color: Colors.white.withOpacity((0.3 * (1 - animValue)).clamp(0.0, 1.0)),
                             width: 2,
                           ),
                         ),
@@ -250,9 +250,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 return AnimatedBuilder(
                   animation: _successAnimationController,
                   builder: (context, child) {
-                    final progress = _scaleAnimation.value;
+                    final progress = _scaleAnimation.value.clamp(0.0, 1.0);
                     final radius = 100.0 + (progress * 200.0);
-                    final opacity = progress * (1 - progress) * 4; // Fade in and out
+                    final opacity = (progress * (1 - progress) * 4).clamp(0.0, 1.0);
                     
                     return Positioned(
                       left: MediaQuery.of(context).size.width / 2 + 
