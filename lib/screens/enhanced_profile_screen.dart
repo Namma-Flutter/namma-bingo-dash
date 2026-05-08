@@ -47,7 +47,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
       if (currentUser != null) {
         _nameController.text = currentUser.name;
         _linkedinController.text = currentUser.linkedinUrl;
-        _profilePictureController.text = currentUser.profilePictureUrl ?? '';
+        _syncLinkedInPhoto(currentUser.linkedinUrl);
       }
       _calculateProgress();
       _checkClipboard();
@@ -55,12 +55,11 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
   }
 
   void _calculateProgress() {
-    int totalFields = 3;
+    int totalFields = 2;
     int completedFields = 0;
     if (_nameController.text.trim().isNotEmpty) completedFields++;
     if (_linkedinController.text.trim().isNotEmpty && _validateLinkedInUrl(_linkedinController.text) == null) completedFields++;
-    if (_profilePictureController.text.trim().isNotEmpty && _isValidUrl(_profilePictureController.text)) completedFields++;
-    
+
     final newProgress = completedFields / totalFields;
     if (newProgress != _completionProgress) {
       setState(() {
@@ -122,6 +121,21 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
       return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
     } catch (e) {
       return false;
+    }
+  }
+
+  void _syncLinkedInPhoto(String linkedinUrl) {
+    final match = RegExp(
+      r'linkedin\.com/in/([a-zA-Z0-9\-_%]+)',
+      caseSensitive: false,
+    ).firstMatch(linkedinUrl.trim());
+
+    final url = match != null
+        ? 'https://unavatar.io/linkedin/${match.group(1)!.replaceAll('/', '')}'
+        : '';
+
+    if (_profilePictureController.text != url) {
+      _profilePictureController.text = url;
     }
   }
 
@@ -499,6 +513,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
                                     validator: _validateLinkedInUrl,
                                     keyboardType: TextInputType.url,
                                     onChanged: (value) {
+                                      _syncLinkedInPhoto(value);
                                       _calculateProgress();
                                     },
                                   ),
@@ -523,6 +538,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
                                                 final data = await Clipboard.getData(Clipboard.kTextPlain);
                                                 if (data?.text != null) {
                                                   _linkedinController.text = data!.text!;
+                                                  _syncLinkedInPhoto(data.text!);
                                                   _calculateProgress();
                                                   _checkClipboard();
                                                 }
@@ -557,129 +573,6 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
                                               borderRadius: BorderRadius.circular(8),
                                               onTap: () async {
                                                 await Clipboard.setData(ClipboardData(text: _linkedinController.text));
-                                                _checkClipboard();
-                                                if (mounted) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: const Row(
-                                                        children: [
-                                                          Icon(Icons.check_circle, color: Colors.white),
-                                                          SizedBox(width: 8),
-                                                          Text('Copied to clipboard!'),
-                                                        ],
-                                                      ),
-                                                      backgroundColor: AppColors.primaryBlue,
-                                                      behavior: SnackBarBehavior.floating,
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              child:  Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.content_copy, color: AppColors.lightCyan, size: 16),
-                                                    const SizedBox(width: 4),
-                                                    Text('Copy', style: AppTypography.label(context, color: AppColors.lightCyan)),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TextFormField(
-                                    controller: _profilePictureController,
-                                    style: const TextStyle(color: Colors.white),
-                                    decoration: InputDecoration(
-                                      labelText: 'Profile Picture URL (Optional)',
-                                      labelStyle: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.7)),
-                                      prefixIcon: const Icon(Icons.image, color: AppColors.lightCyan),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: const BorderSide(color: AppColors.lightCyan, width: 2),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                                      ),
-                                      filled: true,
-                                      fillColor: AppColors.background,
-                                      hintText: 'https://example.com/photo.jpg',
-                                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                                    ),
-                                    keyboardType: TextInputType.url,
-                                    onChanged: (value) {
-                                      _calculateProgress();
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      if (_hasClipboardContent)
-                                        Container(
-                                          margin: const EdgeInsets.only(right: 8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.cardBackground,
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: AppColors.lightCyan.withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(8),
-                                              onTap: () async {
-                                                final data = await Clipboard.getData(Clipboard.kTextPlain);
-                                                if (data?.text != null) {
-                                                  _profilePictureController.text = data!.text!;
-                                                  _calculateProgress();
-                                                  _checkClipboard();
-                                                }
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(Icons.content_paste, color: AppColors.lightCyan, size: 16),
-                                                    SizedBox(width: 4),
-                                                    Text('Paste', style: TextStyle(color: AppColors.lightCyan, fontSize: 12)),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      if (_profilePictureController.text.isNotEmpty)
-                                        Container(
-                                          margin: const EdgeInsets.only(right: 8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.cardBackground,
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(
-                                              color: AppColors.lightCyan.withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(8),
-                                              onTap: () async {
-                                                await Clipboard.setData(ClipboardData(text: _profilePictureController.text));
                                                 _checkClipboard();
                                                 if (mounted) {
                                                   ScaffoldMessenger.of(context).showSnackBar(

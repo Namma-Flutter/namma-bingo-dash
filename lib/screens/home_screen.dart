@@ -20,6 +20,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   bool _showingQuestionMode = false;
   late AnimationController _dashController;
   late AnimationController _dashFloatController;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -34,6 +36,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnimation = CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut);
+
     // Initialize current question index based on completed boxes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final bingoBoxes = ref.read(bingoBoxesProvider.notifier);
@@ -45,6 +53,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
   void dispose() {
     _dashController.dispose();
     _dashFloatController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -868,58 +877,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     ),
                   ),
             // Stats Section
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (remainingForBingo > 0)
-                        Text(
-                          '$remainingForBingo more to go bingo!',
-                          style: AppTypography.bodyMedium(context, color: AppColors.lightCyan, fontWeight: FontWeight.w600),
-                        ),
-                      Text(
-                        '${totalBoxes > 0 ? ((scannedCount / totalBoxes) * 100).toInt() : 0}%',
-                        style: AppTypography.label(context, color: AppColors.lightCyan.withOpacity(0.8)),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: scannedCount.toDouble()),
+              duration: const Duration(milliseconds: 1500),
+              curve: Curves.easeOut,
+              builder: (context, animatedValue, child) {
+                final animatedCount = animatedValue.round();
+                final animatedPercent = totalBoxes > 0 ? ((animatedValue / totalBoxes) * 100).toInt() : 0;
+                final animatedProgress = totalBoxes > 0 ? animatedValue / totalBoxes : 0.0;
+                final animatedRemaining = totalQuestions - animatedCount;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Progress bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: totalBoxes > 0 ? scannedCount / totalBoxes : 0,
-                      backgroundColor: Colors.white.withOpacity(0.1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.lightCyan,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (animatedRemaining > 0)
+                            Text(
+                              '$animatedRemaining more to go bingo!',
+                              style: AppTypography.bodyMedium(context, color: AppColors.lightCyan, fontWeight: FontWeight.w600),
+                            ),
+                          Text(
+                            '$animatedPercent%',
+                            style: AppTypography.label(context, color: AppColors.lightCyan.withOpacity(0.8)),
+                          ),
+                        ],
                       ),
-                      minHeight: 8,
-                    ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: animatedProgress,
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.lightCyan,
+                          ),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             // Bingo Grid
@@ -961,57 +978,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             ),
 
             // Scan Button
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Container(
-                width: double.infinity,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: _currentQuestionIndex >= totalQuestions
-                      ? const LinearGradient(colors: [Color(0xFF00AA66), Color(0xFF00CC88)])
-                      : AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (_currentQuestionIndex >= totalQuestions ? const Color(0xFF00AA66) : AppColors.primaryBlue).withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: currentUser != null
-                      ? _showUnfilledQuestions
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please set up your profile before scanning'),
-                              backgroundColor: Colors.red,
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                          context.go('/profile');
-                        },
-                  icon: const Icon(Icons.qr_code_scanner, size: 28),
-                  label: Text(
-                    _currentQuestionIndex >= totalQuestions
-                        ? 'All Questions Complete!'
-                        : 'Scan to Connect',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
+            AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                final pulse = _pulseAnimation.value;
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Container(
+                    width: double.infinity,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      gradient: _currentQuestionIndex >= totalQuestions
+                          ? const LinearGradient(colors: [Color(0xFF00AA66), Color(0xFF00CC88)])
+                          : AppColors.primaryGradient,
                       borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_currentQuestionIndex >= totalQuestions ? const Color(0xFF00AA66) : AppColors.primaryBlue)
+                              .withOpacity(0.3 + 0.35 * pulse),
+                          blurRadius: 12 + 18 * pulse,
+                          spreadRadius: 1 + 3 * pulse,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: currentUser != null
+                          ? _showUnfilledQuestions
+                          : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please set up your profile before scanning'),
+                                  backgroundColor: Colors.red,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              context.go('/profile');
+                            },
+                      icon: const Icon(Icons.qr_code_scanner, size: 28),
+                      label: Text(
+                        _currentQuestionIndex >= totalQuestions
+                            ? 'All Questions Complete!'
+                            : 'Scan to Connect',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
