@@ -357,7 +357,7 @@ class ConnectionsScreen extends ConsumerWidget {
                                           style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
                                         ),
                                         Text(
-                                          'Connected on ${connection.scannedAt?.day ?? ''}/${connection.scannedAt?.month ?? ''}',
+                                          'Connected on ${connection.scannedAt?.day ?? ''}/${connection.scannedAt?.month ?? ''} at ${connection.scannedAt?.hour.toString().padLeft(2, '0') ?? ''}:${connection.scannedAt?.minute.toString().padLeft(2, '0') ?? ''}',
                                           style: AppTypography.caption(context, color: Colors.white54),
                                         ),
                                       ],
