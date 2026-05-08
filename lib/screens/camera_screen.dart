@@ -654,10 +654,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                         onPressed: () => context.go('/'),
                         icon: const Icon(Icons.close, color: Colors.white70, size: 28),
                       ),
-                      IconButton(
-                        onPressed: () => cameraController.toggleTorch(),
-                        icon: const Icon(Icons.flashlight_on, color: Colors.white70, size: 28),
-                      ),
                     ],
                   ),
                 ),
