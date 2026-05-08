@@ -479,7 +479,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       int? availableBoxId = _boxId;
       if (availableBoxId == null) {
         // Find the first available box
-        for (int i = 1; i <= 25; i++) {
+        final totalBoxes = ref.read(bingoBoxesProvider.notifier).questionsCount;
+        for (int i = 1; i <= totalBoxes; i++) {
           if (!currentUser.scannedBoxes.contains(i)) {
             availableBoxId = i;
             break;
@@ -852,7 +853,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      '${_questionIndex! + 1}/25',
+                                      '${_questionIndex! + 1}/${ref.read(bingoBoxesProvider.notifier).questionsCount}',
                                       style: const TextStyle(
                                         color: Color(0xFF0D1F1C),
                                         fontSize: 12,

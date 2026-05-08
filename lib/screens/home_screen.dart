@@ -967,13 +967,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 width: double.infinity,
                 height: 60,
                 decoration: BoxDecoration(
-                  gradient: _currentQuestionIndex >= 25
+                  gradient: _currentQuestionIndex >= totalQuestions
                       ? const LinearGradient(colors: [Color(0xFF00AA66), Color(0xFF00CC88)])
                       : AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: (_currentQuestionIndex >= 25 ? const Color(0xFF00AA66) : AppColors.primaryBlue).withOpacity(0.4),
+                      color: (_currentQuestionIndex >= totalQuestions ? const Color(0xFF00AA66) : AppColors.primaryBlue).withOpacity(0.4),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -985,7 +985,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                       : () => context.go('/profile'),
                   icon: const Icon(Icons.qr_code_scanner, size: 28),
                   label: Text(
-                    _currentQuestionIndex >= 25
+                    _currentQuestionIndex >= totalQuestions
                         ? 'All Questions Complete!'
                         : 'Scan to Connect',
                     style: const TextStyle(
