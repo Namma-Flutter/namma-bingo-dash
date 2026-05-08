@@ -982,7 +982,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                 child: ElevatedButton.icon(
                   onPressed: currentUser != null
                       ? _showUnfilledQuestions
-                      : () => context.go('/profile'),
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please set up your profile before scanning'),
+                              backgroundColor: Colors.red,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          context.go('/profile');
+                        },
                   icon: const Icon(Icons.qr_code_scanner, size: 28),
                   label: Text(
                     _currentQuestionIndex >= totalQuestions

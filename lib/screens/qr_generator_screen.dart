@@ -115,6 +115,27 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
                 'Go to Profile to add your information',
                 style: AppTypography.bodySmall(context, color: Colors.white70),
               ),
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => context.go('/profile'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      child: Text(
+                        'Set Up Profile',
+                        style: AppTypography.label(context, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
