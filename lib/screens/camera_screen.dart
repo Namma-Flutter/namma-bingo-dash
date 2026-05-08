@@ -1040,11 +1040,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ),
       ),
     );
-    
-    setState(() {
-      _isScanning = true;
-    });
-    ref.read(scanStatusProvider.notifier).state = null;
   }
 
   void _showAlreadyScannedError(String userName) {
@@ -1152,11 +1147,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ),
       ),
     );
-    
-    setState(() {
-      _isScanning = true;
-    });
-    ref.read(scanStatusProvider.notifier).state = null;
   }
 
   void _showSameUserScanError(String userName) {
@@ -1257,11 +1247,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ),
       ),
     );
-    
-    setState(() {
-      _isScanning = true;
-    });
-    ref.read(scanStatusProvider.notifier).state = null;
   }
 
 }
