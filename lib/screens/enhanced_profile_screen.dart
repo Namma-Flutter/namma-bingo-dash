@@ -327,11 +327,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: Container(
+                Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(24),
@@ -754,11 +750,9 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen> w
                           ),
                         ),
                       ),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Community & Links Section
                 Text(
                   'Community & Links',
