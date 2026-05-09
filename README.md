@@ -1,4 +1,4 @@
-# LinkedIn QR Connector
+# LinkedIn QR Connector - NF
 
 A Flutter web application that provides a 25-box grid interface for QR code scanning and automatic LinkedIn connection requests.
 
