@@ -1,423 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_providers.dart';
 import '../const/app_colors.dart';
-import '../utils/typography_utils.dart';
 
 class ConnectionsScreen extends ConsumerWidget {
   const ConnectionsScreen({super.key});
 
-  Future<void> _launchLinkedIn(String linkedInUrl) async {
+  Future<void> _launchLinkedIn(String url) async {
     try {
-      final uri = Uri.parse(linkedInUrl);
+      final uri = Uri.parse(url);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
-    } catch (e) {
-      // Error handled silently for web compatibility
-    }
+    } catch (_) {}
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
-    } else {
-      return 'Just now';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bingoBoxes = ref.watch(bingoBoxesProvider);
-    final currentUser = ref.watch(currentUserProvider);
-    
-    // Get connections that the current user scanned (their connections)
-    final connections = bingoBoxes
-        .where((box) => 
-            currentUser?.scannedBoxes.contains(box.id) == true && 
-            box.scannedByName != null
-        )
-        .toList();
-
-    // Check if bingo is completed (all boxes scanned)
-    final totalQuestions = ref.watch(bingoBoxesProvider.notifier).questionsCount;
-    final isBingoCompleted = currentUser?.scannedBoxes.length == totalQuestions;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text(
-          'Bingo Connections',
-          style: AppTypography.h2(context),
-        ),
-        centerTitle: true,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primaryBlue,
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.people, color: AppColors.lightCyan, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${connections.length}/$totalQuestions',
-                  style: AppTypography.label(context, color: AppColors.lightCyan),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Bingo Completion Banner
-                if (isBingoCompleted)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryBlue.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.emoji_events, color: Colors.white, size: 32),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'BINGO MASTER!',
-                                style: AppTypography.h3(context, fontWeight: FontWeight.w900),
-                              ),
-                              Text(
-                                'You\'ve connected with $totalQuestions people!',
-                                style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.9)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Stats Card
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryBlue.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.network_check,
-                              size: 24,
-                              color: AppColors.lightCyan,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Your Network',
-                                  style: AppTypography.h3(context),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  connections.isEmpty
-                                      ? 'Start scanning to build your network'
-                                      : 'People you\'ve connected with',
-                                  style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.7)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Progress Bar
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                            Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Progress: ${connections.length}/$totalQuestions',
-                                style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                '${totalQuestions > 0 ? ((connections.length / totalQuestions) * 100).toInt() : 0}%',
-                                style: AppTypography.bodySmall(context, color: AppColors.lightCyan, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                            Container(
-                            width: double.infinity,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: totalQuestions > 0 ? connections.length / totalQuestions : 0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Section Title
-                if (connections.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      '${connections.length} Connection${connections.length == 1 ? '' : 's'}',
-                      style: AppTypography.h3(context, color: AppColors.lightCyan),
-                    ),
-                  ),
-
-                // Connections List
-                Expanded(
-                  child: connections.isEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                          ),
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primaryBlue.withOpacity(0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.qr_code_scanner,
-                                      size: 48,
-                                      color: AppColors.lightCyan,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No connections yet',
-                                    style: AppTypography.h3(context),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Start scanning QR codes to build your network',
-                                    style: AppTypography.bodySmall(context, color: Colors.white.withOpacity(0.7)),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: connections.length,
-                          itemBuilder: (context, index) {
-                            final connection = connections[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.1),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.lightCyan.withOpacity(0.5),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: ClipOval(
-                                      child: _isValidUrl(connection.scannedByProfilePicture)
-                                          ? Image.network(
-                                              connection.scannedByProfilePicture!,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) =>
-                                                  Center(
-                                                child: Text(
-                                                  connection.scannedByName?[0].toUpperCase() ?? '?',
-                                                  style: const TextStyle(color: AppColors.lightCyan, fontWeight: FontWeight.bold),
-                                                ),
-                                              ),
-                                            )
-                                          : Center(
-                                              child: Text(
-                                                connection.scannedByName?[0].toUpperCase() ?? '?',
-                                                style: const TextStyle(color: AppColors.lightCyan, fontWeight: FontWeight.bold),
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          connection.scannedByName ?? 'Unknown',
-                                          style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          'Connected on ${connection.scannedAt?.day ?? ''}/${connection.scannedAt?.month ?? ''} at ${connection.scannedAt?.hour.toString().padLeft(2, '0') ?? ''}:${connection.scannedAt?.minute.toString().padLeft(2, '0') ?? ''}',
-                                          style: AppTypography.caption(context, color: Colors.white54),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (connection.scannedByLinkedIn != null && connection.scannedByLinkedIn!.isNotEmpty)
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        gradient: AppColors.primaryGradient,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(12),
-                                          onTap: () => _launchLinkedIn(connection.scannedByLinkedIn!),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.launch, size: 16, color: Colors.white),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  'CONNECT',
-                                                  style: AppTypography.label(context, color: Colors.white, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(0.1),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'NO LINK',
-                                        style: AppTypography.label(context, color: Colors.white.withOpacity(0.5)),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays > 0)    return '${diff.inDays}d ago';
+    if (diff.inHours > 0)   return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'now';
   }
 
   bool _isValidUrl(String? url) {
@@ -425,8 +30,362 @@ class ConnectionsScreen extends ConsumerWidget {
     try {
       final uri = Uri.parse(url);
       return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bingoBoxes  = ref.watch(bingoBoxesProvider);
+    final currentUser = ref.watch(currentUserProvider);
+    final total       = ref.watch(bingoBoxesProvider.notifier).questionsCount;
+    final isBingoDone = total > 0 && (currentUser?.scannedBoxes.length ?? 0) >= total;
+
+    final connections = bingoBoxes
+        .where((b) =>
+            currentUser?.scannedBoxes.contains(b.id) == true &&
+            b.scannedByName != null)
+        .toList();
+
+    final pct = total > 0 ? (connections.length / total * 100).toInt() : 0;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: _ScanlinePainter())),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ──────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('HIGH SCORES', style: GoogleFonts.pressStart2p(
+                            color: AppColors.neonPink,
+                            fontSize: 12,
+                            shadows: [Shadow(color: AppColors.neonPink.withValues(alpha: 0.8), blurRadius: 14)],
+                          )),
+                          const SizedBox(height: 3),
+                          Text('player connections', style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          )),
+                        ],
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.neonPink, width: 1.5),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [BoxShadow(color: AppColors.neonPink.withValues(alpha: 0.3), blurRadius: 10)],
+                        ),
+                        child: Text(
+                          '${connections.length}/$total',
+                          style: GoogleFonts.pressStart2p(
+                            color: AppColors.neonPink, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── BINGO complete banner ────────────────────────────────
+                if (isBingoDone)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.neonYellow, width: 1.5),
+                        borderRadius: BorderRadius.circular(6),
+                        color: AppColors.neonYellow.withValues(alpha: 0.06),
+                        boxShadow: [BoxShadow(color: AppColors.neonYellow.withValues(alpha: 0.2), blurRadius: 16)],
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('🏆', style: TextStyle(fontSize: 22)),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('BINGO MASTER!', style: GoogleFonts.pressStart2p(
+                                color: AppColors.neonYellow, fontSize: 9)),
+                              const SizedBox(height: 3),
+                              const Text('Full roster unlocked!',
+                                  style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // ── Progress bar ─────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('PROGRESS', style: GoogleFonts.pressStart2p(
+                            color: Colors.white.withValues(alpha: 0.3), fontSize: 7)),
+                          Text('$pct%', style: const TextStyle(
+                            color: AppColors.neonGreen,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: total > 0 ? connections.length / total : 0,
+                          backgroundColor: Colors.white.withValues(alpha: 0.07),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.neonGreen),
+                          minHeight: 4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── List ─────────────────────────────────────────────────
+                Expanded(
+                  child: connections.isEmpty
+                      ? _buildEmpty()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          itemCount: connections.length,
+                          itemBuilder: (context, i) {
+                            final c = connections[i];
+                            return _PlayerCard(
+                              rank:           i + 1,
+                              name:           c.scannedByName ?? 'Unknown',
+                              profilePicture: c.scannedByProfilePicture,
+                              linkedIn:       c.scannedByLinkedIn,
+                              scannedAt:      c.scannedAt,
+                              isValidUrl:     _isValidUrl,
+                              formatDate:     _formatDate,
+                              onLinkedIn: (c.scannedByLinkedIn?.isNotEmpty == true)
+                                  ? () => _launchLinkedIn(c.scannedByLinkedIn!)
+                                  : null,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('[ NO PLAYERS ]', style: GoogleFonts.pressStart2p(
+            color: AppColors.neonPink, fontSize: 11,
+            shadows: [const Shadow(color: AppColors.neonPink, blurRadius: 16)],
+          )),
+          const SizedBox(height: 12),
+          Text(
+            'Scan QR codes to add\nplayers to your roster',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 13, height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Player card ────────────────────────────────────────────────────────────────
+
+class _PlayerCard extends StatelessWidget {
+  final int rank;
+  final String name;
+  final String? profilePicture;
+  final String? linkedIn;
+  final DateTime? scannedAt;
+  final bool Function(String?) isValidUrl;
+  final String Function(DateTime) formatDate;
+  final VoidCallback? onLinkedIn;
+
+  const _PlayerCard({
+    required this.rank,
+    required this.name,
+    required this.profilePicture,
+    required this.linkedIn,
+    required this.scannedAt,
+    required this.isValidUrl,
+    required this.formatDate,
+    required this.onLinkedIn,
+  });
+
+  static const _accentColors = [
+    AppColors.neonYellow,  // 1st
+    Color(0xFFD0D0D0),     // 2nd silver
+    Color(0xFFCD7F32),     // 3rd bronze
+    AppColors.neonPink,
+    AppColors.neonBlue,
+    AppColors.neonGreen,
+    AppColors.neonPurple,
+  ];
+
+  Color get _accent => _accentColors[(rank - 1).clamp(0, _accentColors.length - 1)];
+
+  @override
+  Widget build(BuildContext context) {
+    final accent  = _accent;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final rankStr = rank.toString().padLeft(2, '0');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border(
+          left: BorderSide(color: accent, width: 3),
+          top: BorderSide(color: accent.withValues(alpha: 0.1), width: 1),
+          right: BorderSide(color: accent.withValues(alpha: 0.1), width: 1),
+          bottom: BorderSide(color: accent.withValues(alpha: 0.1), width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(color: accent.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(11),
+        child: Row(
+          children: [
+            // Rank number
+            SizedBox(
+              width: 30,
+              child: Text(
+                rankStr,
+                style: GoogleFonts.pressStart2p(
+                  color: accent.withValues(alpha: 0.7),
+                  fontSize: 9,
+                ),
+              ),
+            ),
+            // Avatar circle
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: accent.withValues(alpha: 0.6), width: 1.5),
+                color: accent.withValues(alpha: 0.1),
+              ),
+              child: ClipOval(
+                child: isValidUrl(profilePicture)
+                    ? Image.network(
+                        profilePicture!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _initial(initial, accent),
+                      )
+                    : _initial(initial, accent),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Name + time
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  if (scannedAt != null)
+                    Text(formatDate(scannedAt!),
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.28), fontSize: 10)),
+                ],
+              ),
+            ),
+            // Connect button
+            if (onLinkedIn != null)
+              GestureDetector(
+                onTap: onLinkedIn,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: accent, width: 1),
+                    borderRadius: BorderRadius.circular(4),
+                    boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.25), blurRadius: 8)],
+                  ),
+                  child: Text('IN', style: GoogleFonts.pressStart2p(
+                    color: accent, fontSize: 8)),
+                ),
+              )
+            else
+              Text('NO LINK', style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.15),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _initial(String letter, Color color) => Container(
+        color: color.withValues(alpha: 0.12),
+        child: Center(
+          child: Text(letter,
+              style: TextStyle(
+                  color: color, fontSize: 17, fontWeight: FontWeight.w900)),
+        ),
+      );
+}
+
+// ── Background painter ─────────────────────────────────────────────────────────
+
+class _ScanlinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.013)
+      ..style = PaintingStyle.fill;
+    for (double y = 0; y < size.height; y += 4) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1.5), p);
+    }
+    final dot = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.022)
+      ..style = PaintingStyle.fill;
+    for (double x = 0; x < size.width; x += 40) {
+      for (double y = 0; y < size.height; y += 40) {
+        canvas.drawCircle(Offset(x, y), 1.0, dot);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
 }
