@@ -6,13 +6,12 @@ import 'package:go_router/go_router.dart';
 import '../providers/app_providers.dart';
 import '../const/app_colors.dart';
 import '../const/app_config.dart';
+import '../theme/app_text_styles.dart';
 import 'dart:convert';
-import '../utils/typography_utils.dart';
 import 'dart:math' as math;
 
 class CameraScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? args;
-  
   const CameraScreen({super.key, this.args});
 
   @override
@@ -21,367 +20,70 @@ class CameraScreen extends ConsumerStatefulWidget {
 
 class _CameraScreenState extends ConsumerState<CameraScreen>
     with TickerProviderStateMixin {
-  MobileScannerController cameraController = MobileScannerController();
+  late MobileScannerController cameraController;
   late AnimationController _successAnimationController;
   late AnimationController _pulseAnimationController;
+  late AnimationController _blinkController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _pulseAnimation;
   bool _isScanning = true;
   bool _showSuccessAnimation = false;
+  bool _torchEnabled = false;
   int? _boxId;
   int? _questionIndex;
   String? _questionText;
-  
-  // Security constants
-  static const String _qrSignature = 'BINGO_USER_V1';
+  Offset? _focusPoint;
+  late AnimationController _focusRingController;
+  late Animation<double> _focusRingAnimation;
+
+  // Connected player info for the success overlay
+  String _connectedName = '';
+  String? _connectedPicture;
+  int _connectedBoxId = 0;
+  int _connectedTotal = 0;
+
+  static const String _qrSignature  = 'BINGO_USER_V1';
   static const String _appIdentifier = 'namma_bingo_app';
 
   @override
   void initState() {
     super.initState();
+    cameraController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
     if (widget.args != null) {
-      _boxId = widget.args!['boxId'] as int?;
-      _questionIndex = widget.args!['questionIndex'] as int?;
-      _questionText = widget.args!['questionText'] as String?;
+      _boxId          = widget.args!['boxId'] as int?;
+      _questionIndex  = widget.args!['questionIndex'] as int?;
+      _questionText   = widget.args!['questionText'] as String?;
     }
-    
-    // Initialize animation controllers
+
     _successAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    
     _pulseAnimationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _successAnimationController,
-      curve: Curves.easeOutBack,
-    ));
-    
-    _pulseAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _pulseAnimationController,
-      curve: Curves.easeInOut,
-    ));
-  }
+    _blinkController = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    )..repeat(reverse: true);
 
-  // Security validation methods
-  bool _isValidBingoQR(String qrData) {
-    try {
-      // Try to decode as base64 first (for encoded QR codes)
-      String decodedData = qrData;
-      try {
-        final bytes = base64Decode(qrData);
-        decodedData = utf8.decode(bytes);
-      } catch (e) {
-        // If base64 decode fails, use original data
-      }
-
-      // Check if it's JSON format
-      final data = json.decode(decodedData);
-      
-      // Validate required fields for bingo user QR
-      return data is Map<String, dynamic> &&
-             data['app'] == _appIdentifier &&
-             data['type'] == 'bingo_user' &&
-             data['signature'] == _qrSignature &&
-             data['name'] is String &&
-             data['name'].toString().trim().isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<void> _triggerSuccessAnimation() async {
-    if (!mounted) return;
-    
-    // Trigger haptic feedback and vibration
-    try {
-      if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(
-          pattern: [0, 200, 100, 200], // Success pattern: pause, vibrate, pause, vibrate
-          intensities: [0, 255, 0, 255],
-        );
-      }
-    } catch (e) {
-      // Vibration not available on this device
-    }
-    
-    // Show success animation overlay
-    setState(() {
-      _showSuccessAnimation = true;
-    });
-    
-    // Start animation
-    _successAnimationController.forward();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _pulseAnimationController.forward();
-    
-    // Hide animation after delay
-    await Future.delayed(const Duration(milliseconds: 1500));
-    
-    if (mounted) {
-      setState(() {
-        _showSuccessAnimation = false;
-      });
-      _successAnimationController.reset();
-      _pulseAnimationController.reset();
-    }
-  }
-
-  Widget _buildSuccessAnimationOverlay() {
-    return AnimatedBuilder(
-      animation: _successAnimationController,
-      builder: (context, child) {
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.lightCyan.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
-                AppColors.primaryBlue.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
-                AppColors.navyDeep.withOpacity(_scaleAnimation.value.clamp(0.0, 1.0)),
-              ],
-            ),
-          ),
-          child: Stack(
-            children: [
-              // Ripple effect background
-              ...List.generate(3, (index) {
-                return Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _successAnimationController,
-                    builder: (context, child) {
-                      final delay = index * 0.2;
-                      final animValue = math.max(0.0, (_scaleAnimation.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
-                      return Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity((0.3 * (1 - animValue)).clamp(0.0, 1.0)),
-                            width: 2,
-                          ),
-                        ),
-                        transform: Matrix4.identity()..scale(animValue * 3.0),
-                        child: const SizedBox.expand(),
-                      );
-                    },
-                  ),
-                );
-              }),
-              
-              // Main content
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Check icon
-                    Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          size: 80,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Success text with typewriter effect
-                    AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (context, child) {
-                        final text = "SUCCESS!";
-                        final visibleLength = (_pulseAnimation.value * text.length).floor();
-                        final visibleText = text.substring(0, visibleLength);
-                        
-                        return Column(
-                          children: [
-                            Text(
-                              visibleText,
-                              style: AppTypography.h1(context, letterSpacing: 4.0),
-                            ),
-                            const SizedBox(height: 20),
-                            if (_pulseAnimation.value > 0.7) // Show subtitle after main text
-                              Transform.scale(
-                                scale: (_pulseAnimation.value - 0.7) / 0.3,
-                                child: Text(
-                                  "Connection Established",
-                                  style: AppTypography.bodyLarge(context, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Floating particles
-              ...List.generate(12, (index) {
-                final angle = (index * 30) * (3.14159 / 180);
-                return AnimatedBuilder(
-                  animation: _successAnimationController,
-                  builder: (context, child) {
-                    final progress = _scaleAnimation.value.clamp(0.0, 1.0);
-                    final radius = 100.0 + (progress * 200.0);
-                    final opacity = (progress * (1 - progress) * 4).clamp(0.0, 1.0);
-                    
-                    return Positioned(
-                      left: MediaQuery.of(context).size.width / 2 + 
-                          (radius * math.cos(angle + progress * 2)) - 10,
-                      top: MediaQuery.of(context).size.height / 2 + 
-                          (radius * math.sin(angle + progress * 2)) - 10,
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(opacity),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(opacity * 0.5),
-                              blurRadius: 10,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              }),
-            ],
-          ),
-        );
-      },
+    _focusRingController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
     );
-  }
+    _focusRingAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _focusRingController, curve: Curves.easeOut),
+    );
 
-  void _showUnauthorizedQRWarning() {
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(
-            color: Color(0xFFFF6B35),
-            width: 2,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.background,
-                AppColors.cardBackground.withOpacity(0.8),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Warning icon with animation
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
-                  border: Border.all(
-                    color: const Color(0xFFFF6B35),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.warning_rounded,
-                  color: Color(0xFFFF6B35),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Title
-               Text(
-                'Unauthorized QR Code',
-                style: AppTypography.h3(context),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              
-              // Message
-               Text(
-                'This QR code is not from the Bingo app. Please scan only valid user QR codes to make connections.',
-                style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              
-              // Action button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _isScanning = true;
-                    });
-                    ref.read(scanStatusProvider.notifier).state = null;
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child:  Text(
-                    'Try Again',
-                    style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _successAnimationController, curve: Curves.easeOutBack),
+    );
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseAnimationController, curve: Curves.easeInOut),
     );
   }
 
@@ -390,95 +92,444 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     cameraController.dispose();
     _successAnimationController.dispose();
     _pulseAnimationController.dispose();
+    _blinkController.dispose();
+    _focusRingController.dispose();
     super.dispose();
   }
 
+  // ── Tap to focus ──────────────────────────────────────────────────────────
+
+  Future<void> _onTapFocus(TapUpDetails details) async {
+    if (!mounted) return;
+    setState(() => _focusPoint = details.localPosition);
+    _focusRingController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (mounted) setState(() => _focusPoint = null);
+  }
+
+  // ── QR validation ─────────────────────────────────────────────────────────
+
+  bool _isValidBingoQR(String qrData) {
+    try {
+      String decoded = qrData;
+      try {
+        final bytes = base64Decode(qrData);
+        decoded = utf8.decode(bytes);
+      } catch (_) {}
+      final data = json.decode(decoded);
+      return data is Map<String, dynamic> &&
+          data['app'] == _appIdentifier &&
+          data['type'] == 'bingo_user' &&
+          data['signature'] == _qrSignature &&
+          data['name'] is String &&
+          data['name'].toString().trim().isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Success animation ─────────────────────────────────────────────────────
+
+  Future<void> _triggerSuccessAnimation({
+    required String name,
+    String? picture,
+    required int boxId,
+    required int total,
+  }) async {
+    if (!mounted) return;
+    setState(() {
+      _connectedName    = name;
+      _connectedPicture = picture;
+      _connectedBoxId   = boxId;
+      _connectedTotal   = total;
+      _showSuccessAnimation = true;
+    });
+    try {
+      if (await Vibration.hasVibrator() ?? false) {
+        Vibration.vibrate(pattern: [0, 200, 100, 200], intensities: [0, 255, 0, 255]);
+      }
+    } catch (_) {}
+
+    _successAnimationController.forward();
+    await Future.delayed(const Duration(milliseconds: 300));
+    _pulseAnimationController.forward();
+    await Future.delayed(const Duration(milliseconds: 2200));
+
+    if (mounted) {
+      setState(() => _showSuccessAnimation = false);
+      _successAnimationController.reset();
+      _pulseAnimationController.reset();
+    }
+  }
+
+  Widget _buildInitialAvatar() {
+    final letter = _connectedName.isNotEmpty ? _connectedName[0].toUpperCase() : '?';
+    return Container(
+      color: AppColors.neonGreen.withValues(alpha: 0.12),
+      child: Center(
+        child: Text(letter, style: AppTextStyles.pixel(size: 24, color: AppColors.neonGreen)),
+      ),
+    );
+  }
+
+  Widget _buildSuccessAnimationOverlay() {
+    return AnimatedBuilder(
+      animation: _successAnimationController,
+      builder: (context, _) {
+        return Container(
+          color: Colors.black.withValues(alpha: 0.94),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Multi-color confetti burst
+              CustomPaint(
+                painter: _ConfettiPainter(_scaleAnimation.value),
+              ),
+              // Main content
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // "CONNECTION ESTABLISHED" header
+                      Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: Text(
+                          'CONNECTION\nESTABLISHED',
+                          style: AppTextStyles.pixel(
+                            size: 11,
+                            color: AppColors.neonGreen,
+                            height: 1.8,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.neonGreen.withValues(alpha: 0.9),
+                                blurRadius: 24,
+                              ),
+                              Shadow(
+                                color: AppColors.neonGreen.withValues(alpha: 0.4),
+                                blurRadius: 48,
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Player card
+                      Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: Container(
+                          width: 260,
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF050510),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.neonGreen, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.neonGreen.withValues(alpha: 0.35),
+                                blurRadius: 40,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Avatar
+                              Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.neonGreen,
+                                    width: 2.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.neonGreen.withValues(alpha: 0.45),
+                                      blurRadius: 20,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: _connectedPicture != null &&
+                                          _connectedPicture!.isNotEmpty
+                                      ? Image.network(
+                                          _connectedPicture!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => _buildInitialAvatar(),
+                                        )
+                                      : _buildInitialAvatar(),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              // Player name
+                              Text(
+                                _connectedName.isNotEmpty ? _connectedName : 'Player',
+                                style: AppTextStyles.outfit(
+                                  size: 16,
+                                  weight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 18),
+                              // Stats row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _StatBadge(
+                                    label: 'BOX',
+                                    value: '#$_connectedBoxId',
+                                    color: AppColors.neonBlue,
+                                  ),
+                                  Container(
+                                    width: 1,
+                                    height: 36,
+                                    color: Colors.white12,
+                                  ),
+                                  _StatBadge(
+                                    label: 'LINKS',
+                                    value: '$_connectedTotal',
+                                    color: AppColors.neonPurple,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      // Pulse "+ 1 CONNECTION"
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (_, __) => Opacity(
+                          opacity: _pulseAnimation.value,
+                          child: Text(
+                            '+ 1  CONNECTION',
+                            style: AppTextStyles.pixel(
+                              size: 8,
+                              color: AppColors.neonYellow,
+                              shadows: [
+                                Shadow(
+                                  color: AppColors.neonYellow.withValues(alpha: 0.8),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Dialogs ───────────────────────────────────────────────────────────────
+
+  void _showArcadeDialog({
+    required String title,
+    required String message,
+    required Color accentColor,
+    required IconData icon,
+    required String buttonLabel,
+    required VoidCallback onConfirm,
+  }) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF06061A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: accentColor, width: 2),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accentColor, width: 2),
+                  color: accentColor.withValues(alpha: 0.1),
+                  boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.4), blurRadius: 16)],
+                ),
+                child: Icon(icon, color: accentColor, size: 34),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: AppTextStyles.pixel(size: 9, color: accentColor, height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.45),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: onConfirm,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 20),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: accentColor, width: 1.5),
+                    borderRadius: BorderRadius.circular(4),
+                    color: accentColor.withValues(alpha: 0.1),
+                    boxShadow: [BoxShadow(color: accentColor.withValues(alpha: 0.3), blurRadius: 10)],
+                  ),
+                  child: Text(
+                    '[ $buttonLabel ]',
+                    style: AppTextStyles.pixel(size: 8, color: accentColor),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUnauthorizedQRWarning() {
+    _showArcadeDialog(
+      title: 'INVALID\nQR CODE',
+      message: 'This QR code is not from the Bingo app. Please scan only valid player badges.',
+      accentColor: const Color(0xFFFF6B35),
+      icon: Icons.warning_rounded,
+      buttonLabel: 'TRY AGAIN',
+      onConfirm: () {
+        Navigator.of(context).pop();
+        setState(() => _isScanning = true);
+        ref.read(scanStatusProvider.notifier).state = null;
+      },
+    );
+  }
+
+  void _showSelfScanError() {
+    _showArcadeDialog(
+      title: 'CANNOT\nSELF SCAN',
+      message: 'You cannot scan your own QR code. Ask another player to scan yours!',
+      accentColor: AppColors.error,
+      icon: Icons.block,
+      buttonLabel: 'GOT IT',
+      onConfirm: () {
+        Navigator.of(context).pop();
+        setState(() => _isScanning = true);
+        ref.read(scanStatusProvider.notifier).state = null;
+      },
+    );
+  }
+
+  void _showAlreadyScannedError(String userName) {
+    _showArcadeDialog(
+      title: 'ALREADY\nCONNECTED',
+      message: 'You have already connected with $userName. Find a new player!',
+      accentColor: AppColors.neonYellow,
+      icon: Icons.person_off,
+      buttonLabel: 'SCAN AGAIN',
+      onConfirm: () {
+        Navigator.of(context).pop();
+        setState(() => _isScanning = true);
+        ref.read(scanStatusProvider.notifier).state = null;
+      },
+    );
+  }
+
+  void _showSameUserScanError(String userName) {
+    _showArcadeDialog(
+      title: 'DUPLICATE\nDETECTED',
+      message: 'You already scanned $userName. Seek a new connection to level up!',
+      accentColor: AppColors.neonPurple,
+      icon: Icons.repeat_rounded,
+      buttonLabel: 'FIND NEW',
+      onConfirm: () {
+        Navigator.of(context).pop();
+        setState(() => _isScanning = true);
+        ref.read(scanStatusProvider.notifier).state = null;
+      },
+    );
+  }
+
+  // ── QR detect ─────────────────────────────────────────────────────────────
+
   void _onDetect(BarcodeCapture barcodeCapture) async {
     if (!_isScanning) return;
-
-    final List<Barcode> barcodes = barcodeCapture.barcodes;
+    final barcodes = barcodeCapture.barcodes;
     if (barcodes.isEmpty) return;
-
-    final String? qrData = barcodes.first.rawValue;
+    final qrData = barcodes.first.rawValue;
     if (qrData == null) return;
-
-    setState(() {
-      _isScanning = false;
-    });
-
+    setState(() => _isScanning = false);
     await _processQrData(qrData);
   }
 
   Future<void> _processQrData(String qrData) async {
     try {
-      // Show scanning status
-      ref.read(scanStatusProvider.notifier).state = 'Processing QR code...';
-      
-      // First validate if this is a valid bingo QR code
+      ref.read(scanStatusProvider.notifier).state = 'PROCESSING...';
+
       if (!_isValidBingoQR(qrData)) {
         _showUnauthorizedQRWarning();
         return;
       }
 
-      // Decode QR data securely
       String decodedData = qrData;
       try {
-        // Try base64 decode first
         final bytes = base64Decode(qrData);
         decodedData = utf8.decode(bytes);
-      } catch (e) {
-        // Use original data if not base64 encoded
-      }
+      } catch (_) {}
 
-      // Parse validated QR data to extract user information
       final data = json.decode(decodedData);
-      
-      String scannedUserName = data['name'] ?? 'Unknown User';
-      String? profilePictureUrl = data['profilePictureUrl'];
-      String? linkedInUrl = data['linkedinUrl'];
-      String scannedUserId = data['id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
+      final String scannedUserName    = data['name'] ?? 'Unknown Player';
+      final String? profilePictureUrl = data['profilePictureUrl'];
+      final String? linkedInUrl       = data['linkedinUrl'];
+      final String scannedUserId      =
+          data['id'] ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-      // Get current user
       final currentUser = ref.read(currentUserProvider);
-      if (currentUser == null) {
-        throw 'Please set up your profile first';
-      }
+      if (currentUser == null) throw 'Please set up your profile first';
 
-      // Prevent self-scanning
       if (scannedUserId == currentUser.id) {
         _showSelfScanError();
         return;
       }
 
-      // Check for repetitive person scanning if not allowed
       if (!AppConfig.allowRepetitivePersonScan) {
         final bingoBoxes = ref.read(bingoBoxesProvider);
-        final hasAlreadyScanned = bingoBoxes.any(
-          (box) => box.scannedBy == scannedUserId && box.isSelected,
-        );
-        
+        final hasAlreadyScanned =
+            bingoBoxes.any((box) => box.scannedBy == scannedUserId && box.isSelected);
         if (hasAlreadyScanned) {
           _showAlreadyScannedError(scannedUserName);
           return;
         }
-        
-        // Also check if same user is trying to scan the same person again (only when repetitive scan is not allowed)
-        final currentUserAlreadyScannedThisPerson = bingoBoxes.any(
-          (box) => box.scannedBy == scannedUserId && 
-                   box.isSelected && 
-                   currentUser.scannedBoxes.contains(box.id),
-        );
-        
-        if (currentUserAlreadyScannedThisPerson && !AppConfig.allowSameUserScan) {
+        final alreadySelf = bingoBoxes.any((box) =>
+            box.scannedBy == scannedUserId &&
+            box.isSelected &&
+            currentUser.scannedBoxes.contains(box.id));
+        if (alreadySelf && !AppConfig.allowSameUserScan) {
           _showSameUserScanError(scannedUserName);
           return;
         }
       }
 
-      // Find an available box to assign this scan to
       int? availableBoxId = _boxId;
       if (availableBoxId == null) {
-        // Find the first available box
         final totalBoxes = ref.read(bingoBoxesProvider.notifier).questionsCount;
         for (int i = 1; i <= totalBoxes; i++) {
           if (!currentUser.scannedBoxes.contains(i)) {
@@ -486,121 +537,78 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
             break;
           }
         }
-        
         if (availableBoxId == null) {
-          throw 'All boxes are already filled! You\'ve reached the maximum connections.';
+          throw 'All boxes are filled! Maximum connections reached.';
         }
       } else {
-        // Check if this specific box was already scanned
         if (currentUser.scannedBoxes.contains(availableBoxId)) {
-          throw 'You\'ve already scanned this box!';
+          throw 'This box is already scanned!';
         }
       }
 
-      // Update scanning status
-      ref.read(scanStatusProvider.notifier).state = 'Connecting...';
-
-      // Simulate connection processing
+      ref.read(scanStatusProvider.notifier).state = 'CONNECTING...';
       await Future.delayed(const Duration(seconds: 1));
 
-      // Mark box as scanned
       await ref.read(currentUserProvider.notifier).addScannedBox(availableBoxId);
-      
-      // Get the question for this box
-      String questionAnswered = '';
+
       final notifier = ref.read(bingoBoxesProvider.notifier);
-      if (_questionText != null) {
-        // Use the specific question from the Scan to Connect button
-        questionAnswered = _questionText!;
-      } else {
-        questionAnswered = notifier.getQuestionForBox(availableBoxId);
-      }
-      
+      final questionAnswered = _questionText ?? notifier.getQuestionForBox(availableBoxId);
+
       ref.read(bingoBoxesProvider.notifier).selectBox(
-        availableBoxId, 
-        scannedUserId, 
-        scannedUserName, 
-        profilePictureUrl, 
+        availableBoxId,
+        scannedUserId,
+        scannedUserName,
+        profilePictureUrl,
         linkedInUrl: linkedInUrl,
-        questionAnswered: questionAnswered
+        questionAnswered: questionAnswered,
       );
 
-      // Show success message
-      ref.read(scanStatusProvider.notifier).state = 'Connected successfully!';
-      
-      // Trigger success animation and vibration
-      await _triggerSuccessAnimation();
-      
+      ref.read(scanStatusProvider.notifier).state = 'CONNECTED!';
+      final totalConnections = ref.read(currentUserProvider)?.scannedBoxes.length ?? 0;
+      await _triggerSuccessAnimation(
+        name: scannedUserName,
+        picture: profilePictureUrl,
+        boxId: availableBoxId,
+        total: totalConnections,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            content: Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text('Successfully connected with $scannedUserName!'),
-                    ),
-                  ],
+                const Icon(Icons.check_circle, color: AppColors.neonGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Connected with $scannedUserName!',
+                      style: const TextStyle(color: Colors.white)),
                 ),
-                if (questionAnswered.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Question answered:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  Text(
-                    questionAnswered,
-                    style: AppTypography.caption(context),
-                  ),
-                ],
               ],
             ),
-            backgroundColor: Colors.green.shade600,
+            backgroundColor: const Color(0xFF050F05),
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: const BorderSide(color: AppColors.neonGreen, width: 1),
+            ),
           ),
         );
-        
-        // Navigate back after a short delay
         Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            context.go('/');
-          }
+          if (mounted) context.go('/');
         });
       }
     } catch (e) {
-      // Show error message
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            icon: const Icon(Icons.error, color: Colors.red, size: 64),
-            title: const Text('Error'),
-            content: Text(e.toString()),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  setState(() {
-                    _isScanning = true; // Resume scanning
-                  });
-                },
-                child: const Text('Try Again'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Go back to home
-                },
-                child: const Text('Cancel'),
-              ),
-            ],
-          ),
+        _showArcadeDialog(
+          title: 'ERROR',
+          message: e.toString(),
+          accentColor: AppColors.error,
+          icon: Icons.error_outline_rounded,
+          buttonLabel: 'TRY AGAIN',
+          onConfirm: () {
+            Navigator.of(context).pop();
+            setState(() => _isScanning = true);
+          },
         );
       }
     } finally {
@@ -608,283 +616,292 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     }
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final scanStatus = ref.watch(scanStatusProvider);
-    
-    final notifier = ref.watch(bingoBoxesProvider.notifier);
-    String currentQuestion = 'Tap a specific box to see its question';
-    
-    if (_questionText != null) {
-      // Use the specific question from Scan to Connect button
-      currentQuestion = _questionText!;
-    } else if (_boxId != null) {
-      currentQuestion = notifier.getQuestionForBox(_boxId!);
-    }
+    final notifier   = ref.watch(bingoBoxesProvider.notifier);
+    final currentQuestion = _questionText
+        ?? (_boxId != null ? notifier.getQuestionForBox(_boxId!) : 'Find someone to connect with!');
+    final scanSize = (MediaQuery.of(context).size.width * 0.72).clamp(220.0, 310.0);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Camera preview (full screen background)
-            Positioned.fill(
-              child: MobileScanner(
-                controller: cameraController,
-                onDetect: _onDetect,
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Camera feed with tap-to-focus
+          Positioned.fill(
+            child: GestureDetector(
+              onTapUp: _onTapFocus,
+              child: MobileScanner(controller: cameraController, onDetect: _onDetect),
+            ),
+          ),
+
+          // Focus ring overlay
+          if (_focusPoint != null)
+            Positioned(
+              left: _focusPoint!.dx - 36,
+              top: _focusPoint!.dy - 36,
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _focusRingAnimation,
+                  builder: (_, __) {
+                    final scale = 0.6 + 0.4 * (1 - _focusRingAnimation.value);
+                    final opacity = (1 - _focusRingAnimation.value * 0.5).clamp(0.0, 1.0);
+                    return Transform.scale(
+                      scale: scale,
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.neonGreen,
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.neonGreen.withValues(alpha: 0.4),
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.neonGreen,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-            
-            // Dark overlay
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
+
+          // Dark radial vignette
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 0.85,
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.72)],
+                ),
               ),
             ),
-            
-            // Content overlay
-            Column(
-              children: [
-                // Top close button
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
+          ),
+
+          // Top bar
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withValues(alpha: 0.85), Colors.transparent],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        onPressed: () => context.go('/'),
-                        icon: const Icon(Icons.close, color: Colors.white70, size: 28),
+                      _HudButton(
+                        icon: Icons.close,
+                        onTap: () => context.go('/'),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            'SCAN TERMINAL',
+                            style: AppTextStyles.pixel(
+                              size: 9,
+                              color: AppColors.neonGreen,
+                              shadows: [
+                                Shadow(
+                                  color: AppColors.neonGreen.withValues(alpha: 0.8),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      _HudButton(
+                        icon: _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                        color: _torchEnabled ? AppColors.neonYellow : Colors.white60,
+                        onTap: () async {
+                          await cameraController.toggleTorch();
+                          setState(() => _torchEnabled = !_torchEnabled);
+                        },
                       ),
                     ],
                   ),
                 ),
-                
-                const Spacer(flex: 2),
-                
-                // Scanning frame with rounded corners
-                Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Main scanning frame
-                      Container(
-                        width: 280,
-                        height: 280,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: AppColors.lightCyan,
-                            width: 3,
-                          ),
-                          borderRadius: BorderRadius.circular(32),
+              ),
+            ),
+          ),
+
+          // Scan frame (center)
+          Center(
+            child: SizedBox(
+              width: scanSize,
+              height: scanSize,
+              child: Stack(
+                children: [
+                  // Inner border
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: AppColors.neonGreen.withValues(alpha: 0.25),
+                          width: 1,
                         ),
                       ),
-                      
-                      // Corner indicators
-                      Positioned(
-                        top: -5,
-                        left: -5,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(color: AppColors.lightCyan, width: 4),
-                              left: BorderSide(color: AppColors.lightCyan, width: 4),
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: -5,
-                        right: -5,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(color: AppColors.lightCyan, width: 4),
-                              right: BorderSide(color: AppColors.lightCyan, width: 4),
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(32),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -5,
-                        left: -5,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.lightCyan, width: 4),
-                              left: BorderSide(color: AppColors.lightCyan, width: 4),
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(32),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: -5,
-                        right: -5,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: AppColors.lightCyan, width: 4),
-                              right: BorderSide(color: AppColors.lightCyan, width: 4),
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              bottomRight: Radius.circular(32),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Scanning status indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.lightCyan, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00FF87),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        scanStatus ?? 'SCANNING FOR BINGO BADGE',
-                        style: const TextStyle(
-                          color: Color(0xFF00FF87),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const Spacer(flex: 1),
-                
-                // Instruction text
-                const Text(
-                  'Align QR code within the\nframe',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Target info card - Full question display
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A4A3E).withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF00FF87).withOpacity(0.3),
-                      width: 1,
                     ),
                   ),
-                  child: Row(
+                  // Pixel corner markers
+                  const Positioned(top: 0, left: 0,
+                      child: _PixelCorner(color: AppColors.neonGreen, position: _CornerPos.topLeft)),
+                  const Positioned(top: 0, right: 0,
+                      child: _PixelCorner(color: AppColors.neonGreen, position: _CornerPos.topRight)),
+                  const Positioned(bottom: 0, left: 0,
+                      child: _PixelCorner(color: AppColors.neonGreen, position: _CornerPos.bottomLeft)),
+                  const Positioned(bottom: 0, right: 0,
+                      child: _PixelCorner(color: AppColors.neonGreen, position: _CornerPos.bottomRight)),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom panel
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.95),
+                    Colors.black.withValues(alpha: 0.6),
+                    Colors.transparent,
+                  ],
+                  stops: const [0, 0.6, 1],
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Blinking scan status
+                      AnimatedBuilder(
+                        animation: _blinkController,
+                        builder: (_, __) => Opacity(
+                          opacity: _isScanning
+                              ? 0.4 + 0.6 * _blinkController.value
+                              : 1.0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 7, height: 7,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.neonGreen,
+                                  boxShadow: [BoxShadow(
+                                    color: AppColors.neonGreen.withValues(alpha: 0.9),
+                                    blurRadius: 6,
+                                  )],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                scanStatus ?? 'SCANNING...',
+                                style: AppTextStyles.pixel(
+                                  size: 8,
+                                  color: AppColors.neonGreen,
+                                  shadows: [
+                                    Shadow(
+                                      color: AppColors.neonGreen.withValues(alpha: 0.7),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Mission card
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00FF87).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.black.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.neonGreen.withValues(alpha: 0.35),
+                            width: 1,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.emoji_events,
-                          color: Color(0xFF00FF87),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Text(
-                                  'Target Question',
-                                  style: TextStyle(
-                                    color: Color(0xFF00FF87),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                Text(
+                                  '> MISSION',
+                                  style: AppTextStyles.pixel(
+                                    size: 7,
+                                    color: AppColors.neonGreen.withValues(alpha: 0.6),
                                   ),
                                 ),
                                 if (_questionIndex != null) ...[
-                                  const SizedBox(width: 8),
+                                  const Spacer(),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF00FF87),
-                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.neonGreen.withValues(alpha: 0.4),
+                                        width: 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(3),
                                     ),
                                     child: Text(
-                                      '${_questionIndex! + 1}/${ref.read(bingoBoxesProvider.notifier).questionsCount}',
-                                      style: const TextStyle(
-                                        color: Color(0xFF0D1F1C),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                      '#${_questionIndex! + 1}',
+                                      style: AppTextStyles.pixel(
+                                        size: 7,
+                                        color: AppColors.neonGreen.withValues(alpha: 0.7),
                                       ),
                                     ),
                                   ),
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: const Color(0xFF00FF87).withOpacity(0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                currentQuestion,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.5,
-                                ),
-                              ),
+                            const SizedBox(height: 7),
+                            Text(
+                              currentQuestion,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -892,362 +909,184 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     ],
                   ),
                 ),
-                
-                const SizedBox(height: 40),
-              ],
+              ),
             ),
-            
-            // Loading overlay
-            if (scanStatus != null && scanStatus != 'SCANNING FOR BINGO BADGE')
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black87,
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A4A3E),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF00FF87)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(
-                            color: Color(0xFF00FF87),
+          ),
+
+          // Processing overlay
+          if (scanStatus != null && scanStatus != 'CONNECTED!')
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.88),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF050510),
+                      border: Border.all(color: AppColors.neonGreen, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(color: AppColors.neonGreen.withValues(alpha: 0.3), blurRadius: 20),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          color: AppColors.neonGreen, strokeWidth: 2),
+                        const SizedBox(height: 18),
+                        Text(
+                          scanStatus,
+                          style: AppTextStyles.pixel(
+                            size: 9,
+                            color: AppColors.neonGreen,
+                            height: 1.5,
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            scanStatus,
-                            style: AppTypography.bodyLarge(context, fontWeight: FontWeight.w600),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              
-              // Success animation overlay
-              if (_showSuccessAnimation)
-                Positioned.fill(
-                  child: _buildSuccessAnimationOverlay(),
-                ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSelfScanError() {
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(
-            color: Color(0xFFFF4444),
-            width: 2,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF0D1F1C),
-                const Color(0xFF2D1B1B).withOpacity(0.8),
-              ],
             ),
+
+          // Success animation
+          if (_showSuccessAnimation)
+            Positioned.fill(child: _buildSuccessAnimationOverlay()),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Helper widgets ─────────────────────────────────────────────────────────────
+
+class _StatBadge extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatBadge({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: AppTextStyles.pixel(size: 11, color: color, shadows: [
+            Shadow(color: color.withValues(alpha: 0.7), blurRadius: 10),
+          ]),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: AppTextStyles.pixel(
+            size: 6,
+            color: color.withValues(alpha: 0.65),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Error icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFF4444).withOpacity(0.1),
-                  border: Border.all(
-                    color: const Color(0xFFFF4444),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.block,
-                  color: Color(0xFFFF4444),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Title
-              Text(
-                'Cannot Scan Your Own QR',
-                style: AppTypography.h3(context),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              
-              // Message
-               Text(
-                'You cannot scan your own QR code to make a connection. Please ask someone else to scan your code instead.',
-                  style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              
-              // Action button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _isScanning = true;
-                    });
-                    ref.read(scanStatusProvider.notifier).state = null;
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Continue Scanning',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HudButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  const _HudButton({
+    required this.icon,
+    required this.onTap,
+    this.color = Colors.white60,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.45), width: 1),
+          borderRadius: BorderRadius.circular(4),
+          color: Colors.black.withValues(alpha: 0.5),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+}
+
+enum _CornerPos { topLeft, topRight, bottomLeft, bottomRight }
+
+class _PixelCorner extends StatelessWidget {
+  final Color color;
+  final _CornerPos position;
+
+  const _PixelCorner({required this.color, required this.position});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        border: Border(
+          top: (position == _CornerPos.topLeft || position == _CornerPos.topRight)
+              ? BorderSide(color: color, width: 3)
+              : BorderSide.none,
+          bottom: (position == _CornerPos.bottomLeft || position == _CornerPos.bottomRight)
+              ? BorderSide(color: color, width: 3)
+              : BorderSide.none,
+          left: (position == _CornerPos.topLeft || position == _CornerPos.bottomLeft)
+              ? BorderSide(color: color, width: 3)
+              : BorderSide.none,
+          right: (position == _CornerPos.topRight || position == _CornerPos.bottomRight)
+              ? BorderSide(color: color, width: 3)
+              : BorderSide.none,
         ),
       ),
     );
   }
+}
 
-  void _showAlreadyScannedError(String userName) {
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(
-            color: Color(0xFFFF9800),
-            width: 2,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF0D1F1C),
-                const Color(0xFF2D2116).withOpacity(0.8),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Warning icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFF9800).withOpacity(0.1),
-                  border: Border.all(
-                    color: const Color(0xFFFF9800),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.person_off,
-                  color: Color(0xFFFF9800),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Title
-              Text(
-                'Already Connected',
-                style: AppTypography.h3(context),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              
-              // Message
-              Text(
-                'You have already connected with $userName. Each person can only be scanned once.',
-                style: const TextStyle(
-                  color: Color(0xFFB0BEC5),
-                  fontSize: 16,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              
-              // Action button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _isScanning = true;
-                    });
-                    ref.read(scanStatusProvider.notifier).state = null;
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Scan Someone Else',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+class _ConfettiPainter extends CustomPainter {
+  final double progress;
+  _ConfettiPainter(this.progress);
+
+  static const _colors = [
+    AppColors.neonGreen,
+    AppColors.neonPink,
+    AppColors.neonBlue,
+    AppColors.neonYellow,
+    AppColors.neonPurple,
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rng = math.Random(42);
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (int i = 0; i < 30; i++) {
+      final angle = rng.nextDouble() * 2 * math.pi;
+      final speed = 80.0 + rng.nextDouble() * size.width * 0.42;
+      final dist  = progress * speed;
+      final cx    = size.width / 2 + math.cos(angle) * dist;
+      final cy    = size.height / 2 + math.sin(angle) * dist;
+      final alpha = ((1.0 - progress) * 255).toInt().clamp(0, 255);
+      paint.color = _colors[i % _colors.length].withAlpha(alpha);
+      final radius = 2.5 + rng.nextDouble() * 2.5;
+      canvas.drawCircle(Offset(cx, cy), radius, paint);
+    }
   }
 
-  void _showSameUserScanError(String userName) {
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(
-            color: Color(0xFF9C27B0),
-            width: 2,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF0D1F1C),
-                const Color(0xFF2D1B2D).withOpacity(0.8),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Warning icon
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF9C27B0).withOpacity(0.1),
-                  border: Border.all(
-                    color: const Color(0xFF9C27B0),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.repeat_rounded,
-                  color: Color(0xFF9C27B0),
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Title
-              Text(
-                'Duplicate Scan Detected',
-                style: AppTypography.h3(context),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              
-              // Message
-              Text(
-                'You have already scanned $userName. Please scan someone new to continue building your network.',
-                style: AppTypography.bodyMedium(context, color: const Color(0xFFB0BEC5)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              
-              // Action button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _isScanning = true;
-                    });
-                    ref.read(scanStatusProvider.notifier).state = null;
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Find New Connection',
-                    style: AppTypography.bodyMedium(context, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  @override
+  bool shouldRepaint(_ConfettiPainter old) => old.progress != progress;
 }

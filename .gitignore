@@ -47,3 +47,7 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Secrets — never commit these
+.env
+lib/firebase_options.dart

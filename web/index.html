@@ -31,6 +31,11 @@
 
   <title>namma_bingo</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Preconnect hints so the browser resolves DNS early (fonts are already
+       bundled as assets, but Firebase SDK still loads from CDN). -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://firebaseio.com">
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

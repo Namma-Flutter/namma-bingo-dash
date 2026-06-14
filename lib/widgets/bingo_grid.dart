@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
-import '../const/app_config.dart';
 import '../const/app_colors.dart';
-import 'dart:math' as math;
+import '../theme/app_text_styles.dart';
 
 class BingoGrid extends StatelessWidget {
   final List<BingoBox> boxes;
@@ -18,32 +17,30 @@ class BingoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Safety check for empty boxes list
     if (boxes.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.lightCyan,
-        ),
+        child: CircularProgressIndicator(color: AppColors.neonPink),
       );
     }
-    
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         childAspectRatio: 1,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
       ),
       itemCount: boxes.length,
       itemBuilder: (context, index) {
         final box = boxes[index];
-        final isScannedByCurrentUser = currentUser?.scannedBoxes.contains(box.id) ?? false;
-        
+        final col = index % 5;
+        final isOwn = currentUser?.scannedBoxes.contains(box.id) ?? false;
         return BingoBoxWidget(
           box: box,
-          isScannedByCurrentUser: isScannedByCurrentUser,
+          column: col,
+          isScannedByCurrentUser: isOwn,
           onTap: onBoxTap != null ? () => onBoxTap!(box.id) : null,
           isEnabled: currentUser != null,
         );
@@ -54,6 +51,7 @@ class BingoGrid extends StatelessWidget {
 
 class BingoBoxWidget extends StatelessWidget {
   final BingoBox box;
+  final int column;
   final bool isScannedByCurrentUser;
   final VoidCallback? onTap;
   final bool isEnabled;
@@ -61,244 +59,179 @@ class BingoBoxWidget extends StatelessWidget {
   const BingoBoxWidget({
     super.key,
     required this.box,
+    required this.column,
     required this.isScannedByCurrentUser,
     this.onTap,
     required this.isEnabled,
   });
 
-  bool _isValidImageUrl(String? url) {
-    if (url == null || url.isEmpty) return false;
-    try {
-      final uri = Uri.parse(url);
-      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
-    } catch (e) {
-      return false;
-    }
-  }
+  static const _colColors = [
+    AppColors.neonBlue,
+    AppColors.neonPink,
+    AppColors.neonGreen,
+    AppColors.neonYellow,
+    AppColors.neonPurple,
+  ];
+
+  static const _colLetters = ['B', 'I', 'N', 'G', 'O'];
 
   @override
   Widget build(BuildContext context) {
-    // Scanned profile with image (by current user only)
-    if (box.scannedBy != null && _isValidImageUrl(box.scannedByProfilePicture)) {
-      return GestureDetector(
-        onTap: isEnabled ? onTap : null,
-        child: Stack(
-          children: [
-            Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue,
-                    width: 3,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue).withOpacity(0.4),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-              child: ClipOval(
-                child: Image.network(
-                  box.scannedByProfilePicture!,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildFallbackAvatar();
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: AppColors.cardBackground,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / 
-                                loadingProgress.expectedTotalBytes!
-                              : null,
-                          strokeWidth: 2,
-                          color: AppColors.lightCyan,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            // Checkmark indicator for connected profiles
-            if (isScannedByCurrentUser)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightCyan,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.background,
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: AppColors.background,
-                    size: 12,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
+    final color = _colColors[column];
+    final letter = _colLetters[column];
+    final isScanned = box.scannedBy != null;
 
-    // Scanned profile without valid image (by anyone)
-    if (box.scannedBy != null) {
-      return GestureDetector(
-        onTap: isEnabled ? onTap : null,
-        child: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue,
-                  width: 3,
-                ),
-                gradient: AppColors.primaryGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: (isScannedByCurrentUser ? AppColors.lightCyan : AppColors.primaryBlue).withOpacity(0.3),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: _buildFallbackAvatar(),
-            ),
-            if (isScannedByCurrentUser)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightCyan,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.background,
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: AppColors.background,
-                    size: 12,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
+    final borderColor = isScanned
+        ? color.withValues(alpha: isScannedByCurrentUser ? 0.9 : 0.35)
+        : color.withValues(alpha: 0.18);
 
-    // Empty slot with dashed circle
     return GestureDetector(
       onTap: isEnabled ? onTap : null,
-      child: CustomPaint(
-        painter: DashedCirclePainter(
-          color: Colors.white.withOpacity(0.2),
-          strokeWidth: 2.5,
-          dashWidth: 8,
-          dashSpace: 6,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.03),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.05),
-              width: 1,
-            ),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A0A1E),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: borderColor,
+            width: isScannedByCurrentUser ? 1.5 : 1,
           ),
-          child: Center(
-            child: Icon(
-              Icons.add,
-              color: Colors.white.withOpacity(0.3),
-              size: 32,
-            ),
-          ),
+          boxShadow: isScannedByCurrentUser
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.45),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
-      ),
-    );
-  }
-
-  Widget _buildFallbackAvatar() {
-    final name = box.scannedByName;
-    final initial = name?.isNotEmpty == true ? name![0].toUpperCase() : '?';
-    
-    return Center(
-      child: Text(
-        initial,
-        style: const TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              color: Colors.black26,
-              offset: Offset(0, 2),
-              blurRadius: 4,
-            ),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Column letter watermark at top
+              Positioned(
+                top: 3,
+                child: Text(
+                  letter,
+                  style: AppTextStyles.pixel(
+                    size: 5,
+                    color: color.withValues(alpha: isScanned ? 0.12 : 0.3),
+                  ),
+                ),
+              ),
+              // Large bold number (always present)
+              Text(
+                '${box.id}',
+                style: TextStyle(
+                  color: isScanned
+                      ? color.withValues(alpha: 0.15)
+                      : color.withValues(alpha: 0.6),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              // Dauber stamp overlay (when scanned)
+              if (isScanned) _DauberStamp(box: box, color: color, isOwn: isScannedByCurrentUser),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Custom painter for dashed circle border
-class DashedCirclePainter extends CustomPainter {
+// ── Dauber stamp overlay ───────────────────────────────────────────────────────
+
+class _DauberStamp extends StatelessWidget {
+  final BingoBox box;
   final Color color;
-  final double strokeWidth;
-  final double dashWidth;
-  final double dashSpace;
+  final bool isOwn;
 
-  DashedCirclePainter({
-    required this.color,
-    required this.strokeWidth,
-    required this.dashWidth,
-    required this.dashSpace,
-  });
+  const _DauberStamp({required this.box, required this.color, required this.isOwn});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - strokeWidth) / 2;
-    final circumference = 2 * math.pi * radius;
-    final dashCount = (circumference / (dashWidth + dashSpace)).floor();
-
-    for (int i = 0; i < dashCount; i++) {
-      final startAngle = (i * (dashWidth + dashSpace) / radius);
-      final sweepAngle = dashWidth / radius;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        false,
-        paint,
-      );
+  bool _isValidUrl(String? url) {
+    if (url == null || url.isEmpty) return false;
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (_) {
+      return false;
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    final name = box.scannedByName;
+    final initial = name?.isNotEmpty == true ? name![0].toUpperCase() : '?';
+    final dauberAlpha = isOwn ? 0.88 : 0.55;
+
+    return FractionallySizedBox(
+      widthFactor: 0.76,
+      heightFactor: 0.76,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: dauberAlpha),
+          boxShadow: isOwn
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.7),
+                    blurRadius: 14,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.35),
+                    blurRadius: 28,
+                    spreadRadius: 4,
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                  ),
+                ],
+        ),
+        child: ClipOval(
+          child: _isValidUrl(box.scannedByProfilePicture)
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      box.scannedByProfilePicture!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _initial(initial),
+                      loadingBuilder: (_, child, progress) =>
+                          progress == null ? child : _initial(initial),
+                    ),
+                    // Ink tint overlay on photo
+                    Container(color: color.withValues(alpha: isOwn ? 0.22 : 0.35)),
+                  ],
+                )
+              : _initial(initial),
+        ),
+      ),
+    );
+  }
+
+  Widget _initial(String letter) {
+    return Container(
+      color: Colors.transparent,
+      child: Center(
+        child: Text(
+          letter,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+            color: Colors.black.withValues(alpha: 0.75),
+            height: 1,
+          ),
+        ),
+      ),
+    );
+  }
 }

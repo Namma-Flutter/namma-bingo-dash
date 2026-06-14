@@ -1,41 +1,50 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Dash Theme Palette (Base Foundation)
-  static const Color primaryBlue = Color(0xFF027DFD);
-  static const Color lightCyan = Color(0xFF40D0FB);
-  static const Color navyDeep = Color(0xFF042B59);
-  static const Color accentWhite = Color(0xFFFFFFFF);
-  static const Color dashYellow = Color(0xFFFFF176);
-  
-  // Vibrant Accents (New additions for depth and energy)
-  static const Color electricIndigo = Color(0xFF6366F1);
-  static const Color neonMint = Color(0xFF10B981);
-  static const Color vividAmber = Color(0xFFF59E0B);
-  static const Color hotPink = Color(0xFFEC4899);
-  
-  // Neutral / Utility
-  static const Color background = Color(0xFF021B3A); // Darker, more premium navy
-  static const Color cardBackground = Color(0xFF0A3669); 
-  static const Color surface = Color(0xFF15437A); 
-  static Color surfaceGlass = const Color(0xFFFFFFFF).withOpacity(0.05);
-  
-  // Sophisticated Gradients
+  // === ARCADE CORE ===
+  static const Color background     = Color(0xFF080810);
+  static const Color surface        = Color(0xFF0F0F22);
+  static const Color cardBackground = Color(0xFF14142E);
+
+  // === NEON ACCENTS ===
+  static const Color neonPink   = Color(0xFFFF006E);
+  static const Color neonGreen  = Color(0xFF00FF87);
+  static const Color neonBlue   = Color(0xFF00D4FF);
+  static const Color neonYellow = Color(0xFFFFE600);
+  static const Color neonPurple = Color(0xFFBF00FF);
+
+  // === BACKWARDS-COMPAT ALIASES ===
+  static const Color primaryBlue    = neonBlue;
+  static const Color lightCyan      = neonBlue;
+  static const Color navyDeep       = Color(0xFF0A0A1E);
+  static const Color accentWhite    = Color(0xFFE0E0FF);
+  static const Color dashYellow     = neonYellow;
+  static const Color electricIndigo = neonPurple;
+  static const Color neonMint       = neonGreen;
+  static const Color vividAmber     = neonYellow;
+  static const Color hotPink        = neonPink;
+  static const Color success        = neonGreen;
+  static const Color warning        = neonYellow;
+  static const Color error          = Color(0xFFFF3A3A);
+
+  static Color surfaceGlass =
+      const Color(0xFFFFFFFF).withValues(alpha: 0.04);
+
+  // === GRADIENTS ===
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryBlue, lightCyan, electricIndigo],
+    colors: [neonPink, neonPurple],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    stops: [0.0, 0.5, 1.0],
   );
-  
+
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [hotPink, vividAmber],
-    begin: Alignment.bottomLeft,
-    end: Alignment.topRight,
+    colors: [neonBlue, neonGreen],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
-  
+
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [Color(0xFF042B59), Color(0xFF021B3A), Color(0xFF010D1E)],
+    colors: [Color(0xFF0C0C1E), background, Color(0xFF060608)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -45,9 +54,4 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
-  // Status Colors
-  static const Color success = Color(0xFF10B981);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFEF4444);
 }

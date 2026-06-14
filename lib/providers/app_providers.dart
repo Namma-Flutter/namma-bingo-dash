@@ -1,9 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
-import '../const/app_config.dart';
 import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -68,7 +68,7 @@ class CurrentUserNotifier extends StateNotifier<User?> {
 class QuestionService {
   static FirebaseDatabase get _db => FirebaseDatabase.instanceFor(
     app: Firebase.app(),
-    databaseURL: 'https://namma-bingo-d007c-default-rtdb.firebaseio.com/',
+    databaseURL: dotenv.env['FIREBASE_DATABASE_URL'] ?? '',
   );
 
   static Future<List<String>> fetchQuestions() async {
