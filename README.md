@@ -1,3 +1,4 @@
+
 # LinkedIn QR Connector - NF
 
 A Flutter web application that provides a 25-box grid interface for QR code scanning and automatic LinkedIn connection requests.
@@ -55,18 +56,37 @@ A Flutter web application that provides a 25-box grid interface for QR code scan
 ```
 lib/
 ├── main.dart                 # App entry point with routing
+├── const/
+│   ├── app_colors.dart      # App color constants
+│   ├── app_config.dart      # App configuration
+│   └── const.dart           # General constants
+├── firebase_options.dart     # Firebase configuration
 ├── models/
 │   └── user.dart            # User and BingoBox data models
 ├── providers/
 │   └── app_providers.dart   # State management with Riverpod
 ├── screens/
+│   ├── camera_screen.dart   # QR code scanning camera
+│   ├── connections_screen.dart  # Connections screen
+│   ├── enhanced_profile_screen.dart  # User profile setup/editing
 │   ├── home_screen.dart     # Main 25-box grid interface
 │   ├── profile_screen.dart  # User profile setup/editing
-│   └── camera_screen.dart   # QR code scanning camera
+│   ├── qr_generator_screen.dart  # QR code generation
+│   ├── shell_screen.dart    # Shell screen
+│   └── webview_screen.dart   # Webview screen
+├── theme/
+│   ├── app_text_styles.dart  # Text styles
+│   └── app_theme.dart        # App theme
+├── utils/
+│   ├── download_helper.dart
+│   ├── download_helper_mobile.dart
+│   ├── download_helper_web.dart
+│   └── typography_utils.dart
 └── widgets/
     └── bingo_grid.dart      # Reusable grid components
 ```
 
+```
 ## Dependencies
 
 - **flutter_riverpod**: State management
@@ -76,7 +96,13 @@ lib/
 - **url_launcher**: LinkedIn URL handling
 - **http/dio**: API requests
 - **permission_handler**: Camera permissions
+- **lottie**: UI animations
+- **shimmer**: Loading effects
+- **google_fonts**: Custom fonts (Outfit, PressStart2P)
+- **webview_flutter**: Webview integration
+- **firebase_database**: Database integration
 
+```
 ## Usage Instructions
 
 ### For First-Time Users:
@@ -118,7 +144,16 @@ lib/
 - 5x5 grid layout adapts to screen size
 - Card-based UI with Material Design 3
 - Clear visual states for scanned/available boxes
+- Custom font styling with Outfit and PressStart2P
 
+### Additional Screens
+- Connections screen for managing LinkedIn connections
+- Enhanced profile screen with expanded configuration options
+- QR generator screen for creating shareable QR codes
+- Shell screen for app navigation
+- Webview screen for embedded web content
+
+```
 ## Browser Permissions
 
 The app requires camera permissions to function:
@@ -139,6 +174,13 @@ The app requires camera permissions to function:
 - OAuth 2.0 authentication required for connection requests
 - Rate limiting considerations for API calls
 
+### Theme & Styling
+- Custom text styles defined in `lib/theme/app_text_styles.dart`
+- App theme configured in `lib/theme/app_theme.dart`
+- Color constants updated in `lib/const/app_colors.dart`
+- Assets include `.env` file and custom fonts (Outfit, PressStart2P)
+
+```
 ## Troubleshooting
 
 **Camera not working?**
